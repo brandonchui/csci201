@@ -21,12 +21,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  UserPlus,
+  // LogIn,
   Mail,
   Lock,
-  User,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Crown
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from 'react';
@@ -34,14 +34,13 @@ import { useState } from 'react';
 ///////////////////////////////////////////////
 ///~ using zod's validation api
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
 ///////////////////////////////////////////////
-///~ sign up page component
-export default function SignUp() {
+///~ login page component
+export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -49,7 +48,6 @@ export default function SignUp() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
       email: "",
       password: "",
     },
@@ -59,25 +57,21 @@ export default function SignUp() {
   // TODO using default variables, prob have to fill these out
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const response = await fetch('https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/users', {
+      // Replace with your actual login endpoint
+      const response = await fetch('https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: values.email,
-          hashedPassword: values.password,
-          weightPounds: 0,
-          heightInches: 0,
-          age: 0,
-          gender: "U",
-          goal: "none"
+          password: values.password,
         }),
       });
 
       //TODO not sure if this works
       if (!response.ok) {
-        throw new Error(`Registration failed: ${response.statusText}`);
+        throw new Error('Invalid info');
       }
 
       //TODO might remove this if we're hosting or not?
@@ -86,8 +80,8 @@ export default function SignUp() {
       localStorage.setItem('userEmail', userData.email);
       navigate('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
-      console.error('Registration error:', err);
+      setError(err instanceof Error ? err.message : 'Login failed');
+      console.error('Login error:', err);
     }
   };
 
@@ -102,20 +96,19 @@ export default function SignUp() {
         {/* logo */}
         <img
           src="/logo.png"
-          alt="Logo"
+          alt="FitLife Logo"
           className="h-32 w-auto md:h-40 mx-auto mb-6"
         />
 
         {/* badge for create acc */}
         <Badge variant="outline" className="px-4 py-1 border-yellow-500 text-red-900 mb-4">
-          <UserPlus className="h-4 w-4 mr-1 text-yellow-500" />
-          <span>Create Account</span>
+          <Crown className="h-4 w-4 mr-1 text-yellow-500" />
+          <span>Welcome Back</span>
         </Badge>
 
         {/* h1 header */}
-        <h1
-          className="text-3xl font-bold tracking-tight bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent">
-          Join Our Fitness Community
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent">
+          Resume Your Fitness Journey
         </h1>
       </div>
 
@@ -131,9 +124,9 @@ export default function SignUp() {
 
         {/* subheadings*/}
         <CardHeader>
-          <CardTitle>Sign Up</CardTitle>
+          <CardTitle>Sign In</CardTitle>
           <CardDescription>
-            Enter your details to create your account
+            Welcome back! Please enter your details
           </CardDescription>
         </CardHeader>
 
@@ -141,28 +134,6 @@ export default function SignUp() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
-              {/* NAME form field*/}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        <Input
-                          placeholder="John Doe"
-                          className="pl-10"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* EMAIL form field*/}
               <FormField
@@ -214,22 +185,21 @@ export default function SignUp() {
                 type="submit"
                 className="w-full bg-red-900 hover:bg-red-800"
               >
-                Create Account
+                Sign In
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-
             </form>
           </Form>
 
-          {/* GO TO: login page if have account already*/}
+          {/* GO TO: singup page if have NO account already*/}
           <div className="mt-6 space-y-4">
             <div className="text-center text-sm text-gray-600">
-              Already have an account?{" "}
+              Do not have an account?{" "}
               <Link
-                to="/login"
+                to="/signup"
                 className="text-red-900 hover:text-red-800 font-medium"
               >
-                Log In
+                Sign Up
               </Link>
             </div>
 

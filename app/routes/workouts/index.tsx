@@ -15,9 +15,9 @@ import DashboardLayout from '~/components/DashboardLayout';
 
 ///////////////////////////////////////////////
 ///~ (bc) main
-export default function Settings() {
+export default function Workouts() {
   const [date, setDate] = useState(new Date());
-  const [selectedTab, setSelectedTab] = useState('Settings');
+  const [selectedTab, setSelectedTab] = useState('Workouts');
 
   //possible bug on the states
   const handlePreviousDate = () => setDate(prev => addDays(prev, -1));

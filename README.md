@@ -16,6 +16,9 @@ git pull origin main
 npm install
 ```
 
+---
+# Running the Frontend
+
 ## Prerequisites
 
 1. **Node.js** (latest)

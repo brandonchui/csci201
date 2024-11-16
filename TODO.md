@@ -3,11 +3,8 @@
 ## Environment Configuration
 - [ ] Configure environment-based API URLs
   > Switch between localhost and production API endpoints based on environment
-
-## Authentication Routes
-- [ ] Implement hard passwords
-  > Passwords support being literally anything right now
   
+
 ## Sign Up Route (`/signup`)
 - [ ] Names don't do anything
     > Not sure if needed but I left it in as template
