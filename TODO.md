@@ -2,22 +2,6 @@
 
 ---
 
-# Schedule
-Tasks for the `/signin/` page
-
-### **Validate login user information against the user table, proceed if successful POST request**
-- [ ] **Task**: Add some color to the calendar square
-- **Priority**: High
-- **Description**:
-  Implement the actual login information.
-
-### **Add UI element for fitness statistics during registration**
-- [ ] **Task**: Let users add weight, goals, and gender
-- **Priority**: High
-- **Description**:
-  Currently, the API defaults values to 0.
-
----
 
 # Profiles Page
 Tasks for the `/profile/` page
