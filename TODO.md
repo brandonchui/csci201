@@ -6,7 +6,7 @@
   
 
 ## Sign Up Route (`/signup`)
-- [ ] Names don't do anything
+- [x] Names don't do anything
     > Not sure if needed but I left it in as template
 
 
@@ -18,8 +18,8 @@
 - [ ] Connect exercise list with API
   > Replace hardcoded exercise data with API calls
 
-- [ ] Implement AI workout generation backend
-  > Add functionality to "Generate Workout with AI" button
+- [ ] Implement AI workout generation skeleton
+  > "Generate Workout with AI" button should create a skeleton when fetching api data
 
 - [ ] Add exercise completion tracking
   > Allow users to mark exercises as completed
@@ -44,8 +44,8 @@
 - [ ] Add error handling for API calls
   > Implement proper error messages and fallbacks
 
-- [ ] Add loading states
-  > Show loading indicators during API calls (i think it freezes atm)
+- [ ] Add loading states skeletons for initial api GET for users
+  > Show a skeleton for UI elements during API calls
 
 ## Profile Management
 - [ ] Add user profile editing
@@ -54,16 +54,13 @@
 - [ ] Implement personal data
   > You currently don't have to add your weight etc, maybe during sign up?
 
-## UI/UX Improvements
-- [ ] Add loading skeletons
-  > Show placeholder content while loading
   
 ## Testing
 - [ ] Add unit tests (junit?)
   > Test individual components and functions
 
 ## Security
-- [ ] Add input validation
+- [x] Add input validation
   > Validate all user inputs
 
 
