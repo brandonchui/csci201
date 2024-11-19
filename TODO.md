@@ -115,6 +115,12 @@ Tasks for the `/statistics/` page
 Tasks for the `/workouts/` page
 
 ### **Add a remove exercise button for each workout card**
+- [ ] **Task**: Add an "accept/reject" ui element for an exercise card
+- **Priority**: High
+- **Description**:
+  generated exercises from the AI will be marked as ai generated in the backend, and allow user to accept or deny it. by default keep as our exercise, so accept will do nothing basically, but deny will send a delete request
+
+### **Add a remove exercise button for each workout card**
 - [ ] **Task**: Add a close button on each workout card
 - **Priority**: Medium
 - **Description**:
