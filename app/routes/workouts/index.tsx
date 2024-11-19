@@ -32,6 +32,8 @@ export default function WorkoutPlanner() {
     { name: 'Push-Ups', sets: '4 sets of 15 reps', intensity: 'High', muscles: 'Chest, Triceps, Shoulders' },
     { name: 'Squats', sets: '3 sets of 10 reps', intensity: 'High', muscles: 'Legs, Glutes, Core' },
     { name: 'Plank', sets: '3 sets of 1 minute', intensity: 'Medium', muscles: 'Core, Shoulders' },
+    { name: 'Deadlifts', sets: '4 sets of 8 reps', intensity: 'High', muscles: 'Lower Back, Glutes, Hamstrings' },
+
   ]);
 
   const handlePreviousDate = () => setSelectedDate((prev) => addDays(prev, -1));
