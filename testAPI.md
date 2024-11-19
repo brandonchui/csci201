@@ -71,7 +71,7 @@ You can see the raw data by going to the `Base URL` + `Endpoint` if you want
 
 ---
 
-## Exercises API
+# Exercises API
 
 ### Get Exercises by User ID and Date
 - **Method**: GET
@@ -90,7 +90,9 @@ You can see the raw data by going to the `Base URL` + `Endpoint` if you want
         "name": "Bench Press",
         "repetitions": 10,
         "sets": 3,
-        "durationMins": 15
+        "durationMins": 15,
+        "isAiSuggestion": false,
+        "isCompleted": true
     }
 ]
 ```
@@ -116,6 +118,8 @@ You can see the raw data by going to the `Base URL` + `Endpoint` if you want
     "repetitions": 12,
     "sets": 4,
     "durationMins": 20
+    "isAiSuggestion": false,
+    "isCompleted": true
 }
 ```
 
@@ -129,10 +133,12 @@ You can see the raw data by going to the `Base URL` + `Endpoint` if you want
 - **Request Body**:
 ```json
 {
-    "name": "Squats",
-    "repetitions": 15,
-    "sets": 3,
-    "durationMins": 25
+    "name": "Modified Push-ups",
+    "repetitions": 20,
+    "sets": 4,
+    "durationMins": 15,
+    "isAiSuggestion": false,
+    "isCompleted": true
 }
 ```
 
