@@ -1,3 +1,6 @@
+#TODO 
+https://github.com/brandonchui/csci201/blob/master/TODO.md
+
 # Deployment Guide for Local Development
 > If you want to run using local backend, see disclaimer on bottom. Will fix later, sorry
 ## Quick Start (node.js installed)
