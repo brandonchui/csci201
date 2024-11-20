@@ -104,11 +104,6 @@ Tasks for the `/workouts/` page
 - **Description**:
   generated exercises from the AI will be marked as ai generated in the backend, and allow user to accept or deny it. by default keep as our exercise, so accept will do nothing basically, but deny will send a delete request
 
-### **Add a remove exercise button for each workout card**
-- [ ] **Task**: Add a close button on each workout card
-- **Priority**: Medium
-- **Description**:
-  Update the UI to allow users to remove exercises.
 
 ### **Generate plan should add skeleton (see above)**
 - [ ] **Task**: Add a loading skeleton during plan generation
