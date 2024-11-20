@@ -91,50 +91,101 @@ export const action: ActionFunction = async ({ request }) => {
 
 ///////////////////////////////////////////////
 ///~ using zod's validation api
-const formSchema = z.object({
+const registrationSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
   email: z.string().email("Please enter a valid email"),
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
 });
+
+// Added schema for metadata input
+const metadataSchema = z.object({
+  weightPounds: z.number().min(1, "Weight is required"),
+  heightInches: z.number().min(1, "Height is required"),
+  age: z.number().min(1, "Age is required"),
+  gender: z.enum(["M", "F", "U"]),
+  goal: z.string().min(1, "Goal is required"),
+});
+
 
 ///////////////////////////////////////////////
 ///~ login page component
-export default function Login() {
-  const [error, setError] = useState('');
+export default function SignUp() {
+  const [error, setError] = useState("");
+  const [step, setStep] = useState<"register" | "metadata">("register");
   const navigate = useNavigate();
   const actionData = useActionData<ActionData>();
+
   {/* form init */}
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const registerForm = useForm<z.infer<typeof registrationSchema>>({
+    resolver: zodResolver(registrationSchema),
     defaultValues: {
+      fullName: "",
       email: "",
       password: "",
     },
   });
 
+  //TODO: registration still doesn't work? not exactly sure if it reaches the backend correctly to store user data?
+
+  const metadataForm = useForm<z.infer<typeof metadataSchema>>({
+    resolver: zodResolver(metadataSchema),
+    defaultValues: {
+      weightPounds: 0,
+      heightInches: 0,
+      age: 0,
+      gender: "U",
+      goal: "none",
+    },
+  });
+
   {/* submit function - backend register */}
   // TODO using default variables, prob have to fill these out
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleRegister = async (values: z.infer<typeof registrationSchema>) => {
     try {
       const formData = new FormData();
+      formData.append("fullName", values.fullName);
       formData.append("email", values.email);
       formData.append("password", values.password);
-
-      const response = await fetch("/login", {
+  
+      console.log("Submitting registration data:", Object.fromEntries(formData.entries()));
+  
+      const response = await fetch("/register", {
         method: "POST",
         body: formData,
       });
-
+  
+      console.log(`Response status: ${response.status}, statusText: ${response.statusText}`);
+  
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Login failed');
+        const errorData = await response.json();
+        console.error("Error details:", errorData);
+        throw new Error(errorData.error || "Registration failed");
       }
-
-      // After successful login, manually redirect
-      navigate("/dashboard");
-
+  
+      setStep("metadata"); // Move to metadata input
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-      console.error('Login error:', err);
+      setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
+      console.error("Registration error:", err);
+    }
+  };
+  
+  // Handle metadata submission
+  const handleMetadataSubmit = async (values: z.infer<typeof metadataSchema>) => {
+    try {
+      const formData = new FormData();
+      formData.append("weightPounds", String(values.weightPounds));
+      formData.append("heightInches", String(values.heightInches));
+      formData.append("age", String(values.age));
+      formData.append("gender", values.gender);
+      formData.append("goal", values.goal);
+
+      const response = await fetch("/updateMetadata", { method: "POST", body: formData });
+
+      if (!response.ok) throw new Error("Failed to save metadata");
+
+      navigate("/dashboard"); // Navigate to the dashboard
+    } catch (err) {
+      setError("Failed to save metadata. Please try again.");
     }
   };
 
@@ -167,133 +218,107 @@ export default function Login() {
   ///~ layout
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col items-center px-6 pt-24 pb-12">
-
-      {/* logo/title sec */}
       <div className="text-center mb-8">
-
-        {/* logo */}
-        <img
-          src="/logo.png"
-          alt="FitLife Logo"
-          className="h-32 w-auto md:h-40 mx-auto mb-6"
-        />
-
-        {/* badge for create acc */}
+        <img src="/logo.png" alt="Logo" className="h-32 w-auto mb-6" />
         <Badge variant="outline" className="px-4 py-1 border-yellow-500 text-red-900 mb-4">
-          <Crown className="h-4 w-4 mr-1 text-yellow-500" />
-          <span>Welcome Back</span>
+          {step === 'register' ? 'Create Account' : 'Set Goals'}
         </Badge>
-
-        {/* h1 header */}
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent">
-          Resume Your Fitness Journey
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent">
+          {step === 'register' ? 'Sign Up' : 'Set Your Goals'}
         </h1>
       </div>
 
       {/* toast alert if it messes up */}
       {error && (
         <Alert variant="destructive" className="mb-6 max-w-md">
-          <AlertDescription>{error || actionData?.error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {/* signup form*/}
-      <Card className="w-full max-w-md">
-
-        {/* subheadings*/}
-        <CardHeader>
-          <CardTitle>Sign In</CardTitle>
-          <CardDescription>
-            Welcome back! Please enter your details
-          </CardDescription>
-        </CardHeader>
-
-        {/* form props populated*/}
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
-              {/* EMAIL form field*/}
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
+      {/* Render registration form or metadata form based on the step */}
+      {step === 'register' ? (
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Create Account</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...registerForm}>
+              <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-6">
+                {/* Full Name */}
+                <FormField control={registerForm.control} name="fullName" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        <Input
-                          placeholder="you@example.com"
-                          className="pl-10"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
                   </FormItem>
-                )}
-              />
-
-              {/* PASSWORD form field*/}
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
+                )} />
+                {/* Email */}
+                <FormField control={registerForm.control} name="email" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                {/* Password */}
+                <FormField control={registerForm.control} name="password" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          className="pl-10"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
+                    <FormControl><Input type="password" {...field} /></FormControl>
                   </FormItem>
-                )}
-              />
-
-              {/* submit button */}
-              <Button
-                type="submit"
-                className="w-full bg-red-900 hover:bg-red-800"
-              >
-                Sign In
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </form>
-          </Form>
-
-          {/* GO TO: singup page if have NO account already*/}
-          <div className="mt-6 space-y-4">
-            <div className="text-center text-sm text-gray-600">
-              Do not have an account?{" "}
-              <Link
-                to="/signup"
-                className="text-red-900 hover:text-red-800 font-medium"
-              >
-                Sign Up
-              </Link>
-            </div>
-
-            {/* GUEST FUNCTION */}
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGuestLogin}
-            >
-              Continue as Guest
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-
-          </div>
-        </CardContent>
-      </Card>
+                )} />
+                <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Next</Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Set Your Goals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...metadataForm}>
+              <form onSubmit={metadataForm.handleSubmit(handleMetadataSubmit)} className="space-y-6">
+                {/* Weight */}
+                <FormField control={metadataForm.control} name="weightPounds" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Weight (lbs)</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                {/* Height */}
+                <FormField control={metadataForm.control} name="heightInches" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Height (inches)</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                {/* Age */}
+                <FormField control={metadataForm.control} name="age" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Age</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                {/* Gender */}
+                <FormField control={metadataForm.control} name="gender" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                {/* Goal */}
+                <FormField control={metadataForm.control} name="goal" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fitness Goal</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Save</Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
