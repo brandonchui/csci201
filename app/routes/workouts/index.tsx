@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Dumbbell,
+  X,
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import DashboardLayout from '~/components/DashboardLayout';
@@ -39,6 +40,9 @@ export default function WorkoutPlanner() {
   const handlePreviousDate = () => setSelectedDate((prev) => addDays(prev, -1));
   const handleNextDate = () => setSelectedDate((prev) => addDays(prev, 1));
   const handleToday = () => setSelectedDate(new Date());
+  const handleRemoveWorkout = (index) => {
+    setWorkouts((prevWorkouts) => prevWorkouts.filter((_, i) => i !== index));
+  };
 
   const handleAddWorkout = () => {
     if (!newWorkout.name || !newWorkout.sets || !newWorkout.repetitions || !newWorkout.muscles || !newWorkout.intensity) {
@@ -101,43 +105,36 @@ export default function WorkoutPlanner() {
 
           {/* Workouts Section */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Today's Workouts</CardTitle>
-                <CardDescription>Your personalized fitness routine</CardDescription>
-              </div>
-              <div className="flex space-x-2">
-                {/* Add Workout Button */}
-                <Button
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-                  onClick={() => setShowAddWorkout(true)}
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Today's Workouts</CardTitle>
+              <CardDescription>Your personalized fitness routine</CardDescription>
+            </div>
+            <Button onClick={() => setShowAddWorkout(true)}>Add Workout</Button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {workouts.map((workout, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-white border rounded-lg shadow-sm hover:border-blue-500 transition-colors relative"
                 >
-                  Add Workout
-                </Button>
-                {/* Generate Plan Button */}
-                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Plan
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {workouts.map((workout, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-white border rounded-lg shadow-sm hover:border-blue-500 transition-colors"
-                  >
-                    <div className="flex items-center">
-                      <Dumbbell className="h-5 w-5 mr-4 text-blue-500" />
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{workout.name}</h3>
-                        <p className="text-sm text-gray-600">{workout.sets}</p>
-                        <p className="text-sm text-gray-500">
-                          <strong>Targets:</strong> {workout.muscles}
-                        </p>
-                      </div>
+                  <div className="absolute top-2 right-2">
+                    <Button size="icon" variant="ghost" onClick={() => handleRemoveWorkout(index)}>
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center">
+                    <Dumbbell className="h-5 w-5 mr-4 text-blue-500" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{workout.name}</h3>
+                      <p className="text-sm text-gray-600">{workout.sets}</p>
+                      <p className="text-sm text-gray-500">
+                        <strong>Targets:</strong> {workout.muscles}
+                      </p>
                     </div>
+                  </div>
+                  <div className="flex space-x-2 items-center">
                     <Badge
                       variant="outline"
                       className={
@@ -148,12 +145,31 @@ export default function WorkoutPlanner() {
                     >
                       {workout.intensity}
                     </Badge>
+                    {workout.isAI && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => alert('Workout accepted!')}
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRejectWorkout(index)}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
         {/* Add Workout Popup */}
         {showAddWorkout && (
