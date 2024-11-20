@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////
 ///~ (bc) navigation bar at the top
 import React from 'react';
-import { Link } from "@remix-run/react";
+import { Link, Form } from "@remix-run/react";
 import {
   User,
   Settings,
@@ -82,10 +82,15 @@ const Nav = () => {
 
               {/* log out menu items */}
               <DropdownMenuItem asChild>
-                <Link to="/" className="flex items-center cursor-pointer text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log Out
-                </Link>
+                <Form action="/logout" method="post" className="w-full">
+                  <button
+                    type="submit"
+                    className="flex items-center w-full cursor-pointer text-red-600 px-2 py-1.5 text-sm"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log Out
+                  </button>
+                </Form>
               </DropdownMenuItem>
 
             </DropdownMenuContent>

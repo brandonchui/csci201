@@ -1,4 +1,7 @@
 import { Link, useNavigate } from '@remix-run/react';
+import { createUserSession } from "~/utils/session.server";
+import { ActionFunction, json } from '@remix-run/node';
+import { useActionData } from "@remix-run/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -31,6 +34,61 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useState } from 'react';
 
+///////////////////////////////////////////
+//~ auth
+type ActionData = {
+  error?: string;
+};
+
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  // if guest just use this hardcoded default
+  if (email === "guest@example.com" && password === "guest123") {
+    return createUserSession(24, "/dashboard"); // Using ID 24 for guest
+  }
+
+  if (!email || !password) {
+    return json<ActionData>({ error: "Email and password are required" }, { status: 400 });
+  }
+
+  try {
+    const response = await fetch('https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/users', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+
+    const users = await response.json();
+
+    const user = users.find((u: any) =>
+      u.email === email && u.hashedPassword === password
+    );
+
+    if (!user) {
+      return json<ActionData>({
+        error: "Invalid email or password"
+      }, { status: 401 });
+    }
+
+    // success so create cookies and go to dashboard
+    return createUserSession(user.id, "/dashboard");
+
+  } catch (error) {
+    console.error('Login error:', error);
+    return json<ActionData>({
+      error: "Server error. Please try again later."
+    }, { status: 500 });
+  }
+};
+
 ///////////////////////////////////////////////
 ///~ using zod's validation api
 const formSchema = z.object({
@@ -43,7 +101,7 @@ const formSchema = z.object({
 export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
+  const actionData = useActionData<ActionData>();
   {/* form init */}
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -57,31 +115,51 @@ export default function Login() {
   // TODO using default variables, prob have to fill these out
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      // Replace with your actual login endpoint
-      const response = await fetch('https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: values.email,
-          password: values.password,
-        }),
+      const formData = new FormData();
+      formData.append("email", values.email);
+      formData.append("password", values.password);
+
+      const response = await fetch("/login", {
+        method: "POST",
+        body: formData,
       });
 
-      //TODO not sure if this works
       if (!response.ok) {
-        throw new Error('Invalid info');
+        const data = await response.json();
+        throw new Error(data.error || 'Login failed');
       }
 
-      //TODO might remove this if we're hosting or not?
-      const userData = await response.json();
-      localStorage.setItem('userId', userData.id);
-      localStorage.setItem('userEmail', userData.email);
-      navigate('/dashboard');
+      // After successful login, manually redirect
+      navigate("/dashboard");
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
       console.error('Login error:', err);
+    }
+  };
+
+  // guest login function
+  const handleGuestLogin = async () => {
+    try {
+      const formData = new FormData();
+      formData.append("email", "guest@example.com");
+      formData.append("password", "guest123");
+
+      const response = await fetch("/login", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Guest login failed');
+      }
+
+      // go to dashboard afterwards
+      navigate("/dashboard");
+
+    } catch (err) {
+      setError('Guest login failed');
+      console.error('Guest login error:', err);
     }
   };
 
@@ -115,7 +193,7 @@ export default function Login() {
       {/* toast alert if it messes up */}
       {error && (
         <Alert variant="destructive" className="mb-6 max-w-md">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error || actionData?.error}</AlertDescription>
         </Alert>
       )}
 
@@ -207,12 +285,10 @@ export default function Login() {
             <Button
               variant="outline"
               className="w-full"
-              asChild
+              onClick={handleGuestLogin}
             >
-              <Link to="/dashboard">
-                Continue as Guest
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Link>
+              Continue as Guest
+              <ExternalLink className="ml-2 h-4 w-4" />
             </Button>
 
           </div>

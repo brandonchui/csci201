@@ -22,9 +22,124 @@ import DashboardLayout from '~/components/DashboardLayout';
 import { Progress } from "@/components/ui/progress";
 import { Badge } from '~/components/ui/badge';
 
+//BIG REFACTOR BELOW for user auth functions
+
+/////////////////////////////////////////////////
+//user auth
+import type { LoaderFunction } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import { requireUserId } from "~/utils/session.server";
+
+interface Exercise {
+  id: number;
+  name: string;
+  sets: number;
+  repetitions: number;
+  durationMins: number;
+  isCompleted: boolean;
+  userId: number;
+  date: string;
+  isAiSuggestion: boolean;
+}
+
+interface UserData {
+  id: number;
+  email: string;
+  hashedPassword: string;
+  weightPounds: number;
+  heightInches: number;
+  age: number;
+  gender: string;
+  goal: string;
+}
+
+interface LoaderData {
+  userId: number;
+  userData: UserData;
+  exercises: Exercise[];
+}
+
+// this error checks idk if we need this but safe, using as fallback
+const DEFAULT_USER_DATA: UserData = {
+  id: 0,
+  email: "guest@example.com",
+  hashedPassword: "",
+  weightPounds: 0,
+  heightInches: 0,
+  age: 0,
+  gender: "U",
+  goal: "none"
+};
+
+export const loader: LoaderFunction = async ({ request }) => {
+  const userId = await requireUserId(request);
+  console.log('Loading data for userId:', userId);
+
+  try {
+    //does userID exist?
+    const verifyUserResponse = await fetch('https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/users');
+    if (!verifyUserResponse.ok) {
+      throw new Error('Failed to fetch users list');
+    }
+    const allUsers = await verifyUserResponse.json();
+    const userExists = allUsers.some((user: UserData) => user.id === userId);
+
+    if (!userExists) {
+      console.log('User not found in database:', userId);
+      return json<LoaderData>({
+        userId,
+        userData: DEFAULT_USER_DATA,
+        exercises: []
+      });
+    }
+
+    // get the user, and debug
+    const userResponse = await fetch(`https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/users/${userId}`);
+    if (!userResponse.ok) {
+      console.error('Failed to fetch user data, status:', userResponse.status);
+      throw new Error('Failed to fetch user data');
+    }
+    const userData = await userResponse.json();
+    console.log('Fetched user data:', userData);
+
+    // get the user's exercise info
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const exercisesResponse = await fetch(
+      `https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/exercises/user/${userId}/date/${today}`
+    );
+
+    let exercises: Exercise[] = [];
+    if (exercisesResponse.ok) {
+      exercises = await exercisesResponse.json();
+      console.log('Fetched exercises:', exercises);
+    } else {
+      console.log('No exercises found or error fetching exercises');
+    }
+
+    return json<LoaderData>({
+      userId,
+      userData: userData || DEFAULT_USER_DATA,
+      exercises
+    });
+
+  } catch (error) {
+    console.error('Error in dashboard loader:', error);
+    //fallback
+    return json<LoaderData>({
+      userId,
+      userData: DEFAULT_USER_DATA,
+      exercises: []
+    });
+  }
+};
+
 ///////////////////////////////////////////////
 ///~ layout
 export default function Dashboard() {
+  const { userId, userData, exercises } = useLoaderData<LoaderData>();
+  console.log('Loaded data:', { userId, userData, exercises }); // Debug log
+
   const [date, setDate] = useState(new Date());
   const [selectedTab, setSelectedTab] = useState('Dashboard');
 
@@ -32,17 +147,47 @@ export default function Dashboard() {
   const handleNextDate = () => setDate(prev => addDays(prev, 1));
   const handleToday = () => setDate(new Date());
 
+  const workouts = exercises.map(exercise => ({
+    name: exercise.name,
+    sets: `${exercise.sets} sets of ${exercise.repetitions} reps`,
+    intensity: exercise.durationMins > 30 ? 'High' : 'Medium',
+    isCompleted: exercise.isCompleted
+  }));
+
+  const calculateStreak = () => {
+    //TODO broken
+    return workouts.filter(w => w.isCompleted).length;
+  };
+
+  const calculateWeeklyProgress = () => {
+    //TODO broken
+    const completedWorkouts = workouts.filter(w => w.isCompleted).length;
+    const totalWorkouts = workouts.length;
+    return totalWorkouts > 0 ? (completedWorkouts / totalWorkouts) * 100 : 0;
+  };
+
+
   // Sample workout data
-  const workouts = [
-    { name: 'Lunges', sets: '3 sets of 12 reps', intensity: 'Medium' },
-    { name: 'Push-Ups', sets: '4 sets of 15 reps', intensity: 'High' },
-    { name: 'Squats', sets: '3 sets of 10 reps', intensity: 'High' },
-    { name: 'Plank', sets: '3 sets of 1 minute', intensity: 'Medium' },
-  ];
+  // const workouts = [
+  //   { name: 'Lunges', sets: '3 sets of 12 reps', intensity: 'Medium' },
+  //   { name: 'Push-Ups', sets: '4 sets of 15 reps', intensity: 'High' },
+  //   { name: 'Squats', sets: '3 sets of 10 reps', intensity: 'High' },
+  //   { name: 'Plank', sets: '3 sets of 1 minute', intensity: 'Medium' },
+  // ];
 
   return (
     <DashboardLayout selectedTab={selectedTab} setSelectedTab={setSelectedTab}>
       <div className="space-y-6">
+
+        {/* welcome message */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Hello, {userData.email.split('@')[0]}
+          </h1>
+          <div className="text-sm text-gray-500">
+            {format(date, 'EEEE, MMMM d, yyyy')}
+          </div>
+        </div>
 
         {/* date Navigation */}
         <Card>
@@ -79,9 +224,9 @@ export default function Dashboard() {
               <Flame className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12 Days</div>
+              <div className="text-2xl font-bold">{calculateStreak()} Days</div>
               <p className="text-xs text-muted-foreground">
-                +2 days from last week
+                Keep up the good work!
               </p>
             </CardContent>
           </Card>
@@ -93,8 +238,10 @@ export default function Dashboard() {
               <Target className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">4/5</div>
-              <Progress value={80} className="mt-2" />
+              <div className="text-2xl font-bold">
+                {workouts.filter(w => w.isCompleted).length}/{workouts.length}
+              </div>
+              <Progress value={calculateWeeklyProgress()} className="mt-2" />
             </CardContent>
           </Card>
 
@@ -129,12 +276,9 @@ export default function Dashboard() {
 
 
         {/* THE ACTUAL AI FUNCTION TO GENERATE THE WORKOUT PLAN */}
+        {/* Workouts Section */}
         <div className="grid gap-6 md:grid-cols-2">
-
-          {/* list card */}
-          <Card >
-
-            {/* card header */}
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 {/* eslint-disable-next-line react/no-unescaped-entities */}
@@ -147,7 +291,6 @@ export default function Dashboard() {
               </Button>
             </CardHeader>
 
-            {/* card content info */}
             <CardContent>
               <div className="space-y-4">
                 {workouts.map((workout, index) => (
@@ -164,12 +307,19 @@ export default function Dashboard() {
                         <p className="text-sm text-gray-600">{workout.sets}</p>
                       </div>
                     </div>
-                    <Badge variant="outline" className={
-                      workout.intensity === 'High' ? 'border-red-500 text-red-500' :
-                        'border-yellow-500 text-yellow-600'
-                    }>
-                      {workout.intensity}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {workout.isCompleted && (
+                        <Badge variant="outline" className="border-green-500 text-green-500">
+                          Completed
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className={
+                        workout.intensity === 'High' ? 'border-red-500 text-red-500' :
+                          'border-yellow-500 text-yellow-600'
+                      }>
+                        {workout.intensity}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
               </div>
