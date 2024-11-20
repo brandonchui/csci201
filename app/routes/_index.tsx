@@ -50,13 +50,12 @@ export default function Index() {
 
             {/* h1 header - hero motto */}
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent mb-8">
-              Duis scelerisque maximus augue vitae dapibus.
+              Welcome to your personal Workout Tracker!
             </h1>
 
             {/* h3 header - description */}
             <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-10">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas lacinia nunc id consequat porttitor. Nullam vulputate sem eu ante auctor sollicitudin. Nulla suscipit felis eget tellus tempus, sed pretium elit congue.
-            </p>
+            Track your workouts effortlessly and achieve your fitness goals with ease using our personalized workout tracker. Discover new workout plans and stay on top of your progress with AI-powered recommendations and an intuitive user experience designed just for you.            </p>
 
             {/* button container */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -93,11 +92,10 @@ export default function Index() {
           {/* secondary text */}
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Vestibulum semper rutrum magna
+            Achieve Your Fitness Goals
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Morbi eu scelerisque risus. Curabitur tortor est, vulputate ut rhoncus sed, rhoncus nec dolor. Ut vulputate ligula a urna varius,
-            </p>
+            Take control of your health and fitness journey with tools designed to track progress, optimize workouts, and keep you motivated every step of the way.            </p>
           </div>
 
           {/* 3 card layout to highlight features */}
@@ -107,20 +105,20 @@ export default function Index() {
             <Card className="border-2 hover:border-red-900/20 transition-all">
               <CardHeader>
                 <ChartLine className="h-10 w-10 text-red-900 mb-2" />
-                <CardTitle>Cras tristique</CardTitle>
+                <CardTitle>Track Your Progress</CardTitle>
                 <CardDescription>
-                  Duis tortor sapien, rutrum quis neque vitae, tincidunt suscipit.
+                Monitor your fitness journey with real-time analytics and visualizations to keep you on track.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-center">
                     <Activity className="h-4 w-4 mr-2 text-green-500" />
-                    Nam elementum consectetur
+                    Real-time performance insights
                   </li>
                   <li className="flex items-center">
                     <Activity className="h-4 w-4 mr-2 text-green-500" />
-                    Pellentesque mollis urna
+                    Personalized progress tracking
                   </li>
                 </ul>
               </CardContent>
@@ -130,20 +128,20 @@ export default function Index() {
             <Card className="border-2 hover:border-red-900/20 transition-all">
               <CardHeader>
                 <Brain className="h-10 w-10 text-red-900 mb-2" />
-                <CardTitle>Aliquam odio orci</CardTitle>
+                <CardTitle>Get Smarter Recommendations</CardTitle>
                 <CardDescription>
-                  Duis tortor sapien, rutrum quis neque vitae, tincidunt suscipit.
+                Receive tailored workout suggestions backed by AI to meet your fitness goals efficiently.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-center">
                     <Activity className="h-4 w-4 mr-2 text-green-500" />
-                    Nam elementum consectetur
+                    Adaptive plans for your needs
                   </li>
                   <li className="flex items-center">
                     <Activity className="h-4 w-4 mr-2 text-green-500" />
-                    Pellentesque mollis urna
+                    AI-driven insights
                   </li>
                 </ul>
               </CardContent>
@@ -153,20 +151,18 @@ export default function Index() {
             <Card className="border-2 hover:border-red-900/20 transition-all">
               <CardHeader>
                 <Target className="h-10 w-10 text-red-900 mb-2" />
-                <CardTitle>Curabitur at ultrices orci</CardTitle>
+                <CardTitle>Stay Focused</CardTitle>
                 <CardDescription>
-                  Maecenas accumsan, nunc varius finibus rhoncus, tortor mi gravida.
-                </CardDescription>
+                Set clear goals and achieve them with tools designed to enhance your motivation and discipline.                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-center">
                     <Activity className="h-4 w-4 mr-2 text-green-500" />
-                    Nam elementum consectetur
-                  </li>
+                    Goal-oriented tracking                  </li>
                   <li className="flex items-center">
                     <Activity className="h-4 w-4 mr-2 text-green-500" />
-                    Pellentesque mollis urna
+                    Milestone achievements
                   </li>
                 </ul>
               </CardContent>
@@ -178,12 +174,14 @@ export default function Index() {
         <div className="mt-20 text-center">
           <div className="inline-flex items-center justify-center p-1 mb-8 rounded-full bg-red-900/10">
             <Dumbbell className="h-5 w-5 text-red-900 mr-2" />
-            <span className="text-red-900 font-medium">Quisque nec nisl</span>
+            <span className="text-red-900 font-medium">Ready to Take Charge of Your Fitness?
+</span>
           </div>
 
           <h3 className="text-2xl md:text-4xl font-bold text-gray-900 mb-6 max-w-xl mx-auto">
-            Praesent at sapien iaculis, vehicula metus id?
-          </h3>
+          Discover the tools you need to transform your fitness routine and achieve your goals.
+
+</h3>
 
           {/* last button - probably a bit much */}
           <Button

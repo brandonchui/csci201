@@ -2,7 +2,7 @@
 ///~ (bc) this is the sidebar idk why i named it dashboardlayout
 
 import React from 'react';
-import { Link } from "@remix-run/react";
+import { Link, Form } from "@remix-run/react";
 import {
   Sidebar,
   SidebarContent,
@@ -116,10 +116,15 @@ export default function DashboardLayout({
                 {/* log out menu item*/}
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link to="/" className="flex items-center gap-2">
-                      <LogOut className="h-4 w-4" />
-                      <span>Log Out</span>
-                    </Link>
+                    <Form method="post" action="/logout">
+                      <button
+                        type="submit"
+                        className="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-100 rounded-md"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Log Out</span>
+                      </button>
+                    </Form>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
