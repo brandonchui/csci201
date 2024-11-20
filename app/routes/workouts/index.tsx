@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input, Select } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Sparkles,
@@ -24,7 +24,7 @@ export default function WorkoutPlanner() {
     sets: '',
     repetitions: '',
     muscles: '',
-    intensity: '',
+    intensity: 'Medium',
   });
 
   // Use state to manage workouts
@@ -67,7 +67,7 @@ export default function WorkoutPlanner() {
       sets: '',
       repetitions: '',
       muscles: '',
-      intensity: '',
+      intensity: 'Medium',
     });
     setShowAddWorkout(false);
   };
@@ -149,7 +149,9 @@ export default function WorkoutPlanner() {
                         className={
                           workout.intensity === 'High'
                             ? 'border-red-500 text-red-500'
-                            : 'border-yellow-500 text-yellow-600'
+                            : workout.intensity === 'Medium'
+                            ? 'border-yellow-500 text-yellow-600'
+                            : 'border-green-500 text-green-500'
                         }
                       >
                         {workout.intensity}
@@ -211,11 +213,16 @@ export default function WorkoutPlanner() {
                 </div>
                 <div>
                   <Label htmlFor="intensity">Intensity</Label>
-                  <Input
+                  <select
                     id="intensity"
                     value={newWorkout.intensity}
                     onChange={(e) => setNewWorkout({ ...newWorkout, intensity: e.target.value })}
-                  />
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
                 </div>
               </div>
               <div className="flex justify-end mt-4 space-x-2">
