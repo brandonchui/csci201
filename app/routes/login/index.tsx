@@ -146,26 +146,20 @@ export default function SignUp() {
       formData.append("fullName", values.fullName);
       formData.append("email", values.email);
       formData.append("password", values.password);
-  
-      console.log("Submitting registration data:", Object.fromEntries(formData.entries()));
-  
+
       const response = await fetch("/register", {
         method: "POST",
         body: formData,
       });
-  
-      console.log(`Response status: ${response.status}, statusText: ${response.statusText}`);
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error details:", errorData);
         throw new Error(errorData.error || "Registration failed");
       }
-  
-      setStep("metadata"); // Move to metadata input
+
+      setStep("metadata");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
-      console.error("Registration error:", err);
     }
   };
   
@@ -196,21 +190,12 @@ export default function SignUp() {
       formData.append("email", "guest@example.com");
       formData.append("password", "guest123");
 
-      const response = await fetch("/login", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch("/login", { method: "POST", body: formData });
+      if (!response.ok) throw new Error('Guest login failed');
 
-      if (!response.ok) {
-        throw new Error('Guest login failed');
-      }
-
-      // go to dashboard afterwards
-      navigate("/dashboard");
-
+      navigate("/dashboard"); // Directly navigate to the dashboard
     } catch (err) {
       setError('Guest login failed');
-      console.error('Guest login error:', err);
     }
   };
 
@@ -218,25 +203,32 @@ export default function SignUp() {
   ///~ layout
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col items-center px-6 pt-24 pb-12">
+      {/* Page Header: Logo and Title */}
       <div className="text-center mb-8">
+        {/* App Logo */}
         <img src="/logo.png" alt="Logo" className="h-32 w-auto mb-6" />
+        
+        {/* Badge indicating current step */}
         <Badge variant="outline" className="px-4 py-1 border-yellow-500 text-red-900 mb-4">
           {step === 'register' ? 'Create Account' : 'Set Goals'}
         </Badge>
+        
+        {/* Page Title */}
         <h1 className="text-3xl font-bold bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent">
           {step === 'register' ? 'Sign Up' : 'Set Your Goals'}
         </h1>
       </div>
-
-      {/* toast alert if it messes up */}
+  
+      {/* Error Toast (Displayed if error exists) */}
       {error && (
         <Alert variant="destructive" className="mb-6 max-w-md">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-
-      {/* Render registration form or metadata form based on the step */}
+  
+      {/* Form Container */}
       {step === 'register' ? (
+        // Registration Form
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Create Account</CardTitle>
@@ -244,33 +236,38 @@ export default function SignUp() {
           <CardContent>
             <Form {...registerForm}>
               <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-6">
-                {/* Full Name */}
+                {/* Full Name Input */}
                 <FormField control={registerForm.control} name="fullName" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                   </FormItem>
                 )} />
-                {/* Email */}
+                
+                {/* Email Input */}
                 <FormField control={registerForm.control} name="email" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                   </FormItem>
                 )} />
-                {/* Password */}
+                
+                {/* Password Input */}
                 <FormField control={registerForm.control} name="password" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl><Input type="password" {...field} /></FormControl>
                   </FormItem>
                 )} />
+                
+                {/* Submit Button */}
                 <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Next</Button>
               </form>
             </Form>
           </CardContent>
         </Card>
       ) : (
+        // Metadata Input Form (Displayed after successful registration)
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Set Your Goals</CardTitle>
@@ -278,47 +275,63 @@ export default function SignUp() {
           <CardContent>
             <Form {...metadataForm}>
               <form onSubmit={metadataForm.handleSubmit(handleMetadataSubmit)} className="space-y-6">
-                {/* Weight */}
+                {/* Weight Input */}
                 <FormField control={metadataForm.control} name="weightPounds" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Weight (lbs)</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                   </FormItem>
                 )} />
-                {/* Height */}
+                
+                {/* Height Input */}
                 <FormField control={metadataForm.control} name="heightInches" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Height (inches)</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                   </FormItem>
                 )} />
-                {/* Age */}
+                
+                {/* Age Input */}
                 <FormField control={metadataForm.control} name="age" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Age</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                   </FormItem>
                 )} />
-                {/* Gender */}
+                
+                {/* Gender Selection */}
                 <FormField control={metadataForm.control} name="gender" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Gender</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                   </FormItem>
                 )} />
-                {/* Goal */}
+                
+                {/* Fitness Goal Input */}
                 <FormField control={metadataForm.control} name="goal" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fitness Goal</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                   </FormItem>
                 )} />
+                
+                {/* Save Button */}
                 <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Save</Button>
               </form>
             </Form>
           </CardContent>
         </Card>
       )}
+      
+      {/* Guest Login Button */}
+      <Button
+        variant="outline"
+        className="mt-6"
+        onClick={handleGuestLogin}
+      >
+        Continue as Guest
+        <ExternalLink className="ml-2 h-4 w-4" />
+      </Button>
     </div>
   );
 }
