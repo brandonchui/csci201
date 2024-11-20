@@ -137,15 +137,61 @@ export const loader: LoaderFunction = async ({ request }) => {
 ///////////////////////////////////////////////
 ///~ layout
 export default function Dashboard() {
-  const { userId, userData, exercises } = useLoaderData<LoaderData>();
-  console.log('Loaded data:', { userId, userData, exercises }); // Debug log
-
+  const { userId, userData, exercises: initialExercises } = useLoaderData<LoaderData>();
   const [date, setDate] = useState(new Date());
   const [selectedTab, setSelectedTab] = useState('Dashboard');
 
-  const handlePreviousDate = () => setDate(prev => addDays(prev, -1));
-  const handleNextDate = () => setDate(prev => addDays(prev, 1));
-  const handleToday = () => setDate(new Date());
+  // GET THE EXERCISES FOR THE CALENDAR DATE
+  const [exercises, setExercises] = useState(initialExercises);
+  const [isLoading, setIsLoading] = useState(false);
+  const fetchExercisesForDate = async (selectedDate: Date) => {
+    setIsLoading(true);
+    try {
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const response = await fetch(
+        `https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/exercises/user/${userId}/date/${formattedDate}`
+      );
+
+      if (!response.ok) {
+        console.error('Failed to fetch exercises for date:', formattedDate);
+        setExercises([]);
+        return;
+      }
+
+      const exercisesData = await response.json();
+      setExercises(exercisesData);
+    } catch (error) {
+      console.error('Error fetching exercises:', error);
+      setExercises([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDateChange = async (newDate: Date | undefined) => {
+    if (newDate) {
+      setDate(newDate);
+      await fetchExercisesForDate(newDate);
+    }
+  };
+
+  const handlePreviousDate = async () => {
+    const newDate = addDays(date, -1);
+    setDate(newDate);
+    await fetchExercisesForDate(newDate);
+  };
+
+  const handleNextDate = async () => {
+    const newDate = addDays(date, 1);
+    setDate(newDate);
+    await fetchExercisesForDate(newDate);
+  };
+
+  const handleToday = async () => {
+    const today = new Date();
+    setDate(today);
+    await fetchExercisesForDate(today);
+  };
 
   const workouts = exercises.map(exercise => ({
     name: exercise.name,
@@ -184,9 +230,9 @@ export default function Dashboard() {
           <h1 className="text-2xl font-semibold text-gray-900">
             Hello, {userData.email.split('@')[0]}
           </h1>
-          <div className="text-sm text-gray-500">
-            {format(date, 'EEEE, MMMM d, yyyy')}
-          </div>
+          {/*<div className="text-sm text-gray-500">*/}
+          {/*  {format(date, 'EEEE, MMMM d, yyyy')}*/}
+          {/*</div>*/}
         </div>
 
         {/* date Navigation */}
@@ -281,48 +327,60 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                {/* eslint-disable-next-line react/no-unescaped-entities */}
-                <CardTitle>Today's Plan</CardTitle>
+                <CardTitle>
+                  Workouts for {format(date, 'MMMM d, yyyy')}
+                </CardTitle>
                 <CardDescription>Your personalized workout routine</CardDescription>
               </div>
-              <Button className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700">
+              <Button
+                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Generate Plan
               </Button>
             </CardHeader>
 
             <CardContent>
-              <div className="space-y-4">
-                {workouts.map((workout, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm hover:border-yellow-500 transition-colors"
-                  >
-                    <div className="flex items-center">
-                      <Dumbbell className="h-5 w-5 mr-4 text-yellow-500" />
-                      <div>
-                        <h3 className="text-lg font-semibold text-red-900">
-                          {workout.name}
-                        </h3>
-                        <p className="text-sm text-gray-600">{workout.sets}</p>
+              {isLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="text-gray-500">Loading exercises...</div>
+                </div>
+              ) : workouts.length === 0 ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="text-gray-500">No workouts scheduled for this day</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {workouts.map((workout, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm hover:border-yellow-500 transition-colors"
+                    >
+                      <div className="flex items-center">
+                        <Dumbbell className="h-5 w-5 mr-4 text-yellow-500" />
+                        <div>
+                          <h3 className="text-lg font-semibold text-red-900">
+                            {workout.name}
+                          </h3>
+                          <p className="text-sm text-gray-600">{workout.sets}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {workout.isCompleted && (
+                          <Badge variant="outline" className="border-green-500 text-green-500">
+                            Completed
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className={
+                          workout.intensity === 'High' ? 'border-red-500 text-red-500' :
+                            'border-yellow-500 text-yellow-600'
+                        }>
+                          {workout.intensity}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {workout.isCompleted && (
-                        <Badge variant="outline" className="border-green-500 text-green-500">
-                          Completed
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className={
-                        workout.intensity === 'High' ? 'border-red-500 text-red-500' :
-                          'border-yellow-500 text-yellow-600'
-                      }>
-                        {workout.intensity}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -336,7 +394,7 @@ export default function Dashboard() {
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={(newDate) => newDate && setDate(newDate)}
+                  onSelect={handleDateChange}
                   className="rounded-md border"
                 />
                 <Button
