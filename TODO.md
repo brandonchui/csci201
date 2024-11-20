@@ -70,6 +70,12 @@ Tasks for the `/dashboard/` page
 - **Description**:
   Prevent display of stale data during API calls.
 
+  ### **Need to sync workout on dashboard page with workout on workouts page"**
+- [ ] **Task**: Sync workout on dashboard with workouts on workouts page.
+- **Priority**: High
+- **Description**:
+  Whenever workouts are removed or added in workouts page, it should be adjusted on the dashboard as well.
+
 ---
 
 # Statistics
