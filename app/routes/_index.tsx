@@ -78,7 +78,7 @@ export default function Index() {
                 variant="outline"
                 asChild
               >
-                <Link to="/signup">Sign In</Link>
+                <Link to="/signup">Sign Up</Link>
               </Button>
             </div>
           </div>
