@@ -54,7 +54,7 @@ export default function SignUp() {
   const [step, setStep] = useState<"register" | "metadata">("register");
   const navigate = useNavigate();
 
-  {/* form init */}
+  {/* form init */ }
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -75,7 +75,7 @@ export default function SignUp() {
     },
   });
 
-  {/* submit function - backend register */}
+  {/* submit function - backend register */ }
   // TODO using default variables, prob have to fill these out
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -107,6 +107,7 @@ export default function SignUp() {
 
       setStep("metadata"); // move to the metadata form
       form.reset();
+      metadataForm.reset();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
       console.error('Registration error:', err);
@@ -168,7 +169,7 @@ export default function SignUp() {
       )}
 
       {/* Registration Form (Step 1) */}
-        {step === "register" ? (
+      {step === "register" && (
         <Card className="w-full max-w-md">
 
           {/* subheadings*/}
@@ -183,7 +184,7 @@ export default function SignUp() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* NAME form field
+                {/* NAME form field
                 <FormField
                   control={form.control}
                   name="name"
@@ -204,8 +205,8 @@ export default function SignUp() {
                     </FormItem>
                   )}
                 />
-              */}  
-                
+              */}
+
                 {/* EMAIL form field*/}
                 <FormField
                   control={form.control}
@@ -264,9 +265,11 @@ export default function SignUp() {
             </Form>
           </CardContent>
         </Card>
-      ) : (
-         /* Metadata Input Form (Step 2) */
-         <Card className="w-full max-w-md">
+      )}
+
+      {/* Metadata Form (Step 2) */}
+      {step === "metadata" && (
+        <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Set Your Goals</CardTitle>
           </CardHeader>
@@ -277,48 +280,63 @@ export default function SignUp() {
                 <FormField control={metadataForm.control} name="weightPounds" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Weight (lbs)</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <FormControl>
+                      <Input {...field} placeholder={String(metadataForm.getValues("weightPounds"))} />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
-                
+
                 {/* Height Input */}
                 <FormField control={metadataForm.control} name="heightInches" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Height (inches)</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <FormControl>
+                      <Input {...field} placeholder={String(metadataForm.getValues("heightInches"))} />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
-                
+
                 {/* Age Input */}
                 <FormField control={metadataForm.control} name="age" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Age</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <FormControl>
+                      <Input {...field} placeholder={String(metadataForm.getValues("age"))} />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
-                
-                {/* Gender Selection */}
+
+                {/* Gender Input */}
                 <FormField control={metadataForm.control} name="gender" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Gender</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <FormControl>
+                      <Input {...field} placeholder={metadataForm.getValues("gender")} />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
-                
+
                 {/* Fitness Goal Input */}
                 <FormField control={metadataForm.control} name="goal" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fitness Goal</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <FormControl>
+                      <Input {...field} placeholder={metadataForm.getValues("goal")} />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
-                
+
                 {/* Save Button */}
                 <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Save</Button>
               </form>
             </Form>
           </CardContent>
-       </Card>
+        </Card>
       )}
 
       {/* GO TO: login page if have account already*/}
@@ -346,6 +364,6 @@ export default function SignUp() {
         </Button>
 
       </div>
-  </div>
-);
+    </div>
+  );
 }
