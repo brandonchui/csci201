@@ -113,7 +113,7 @@ export default function Login() {
   const navigate = useNavigate();
   const actionData = useActionData<ActionData>();
 
-  {/* form init */}
+  {/* form init */ }
   const registerForm = useForm<z.infer<typeof registrationSchema>>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
@@ -122,7 +122,7 @@ export default function Login() {
     },
   });
 
-  {/* submit function - backend register */}
+  {/* submit function - backend register */ }
   // TODO using default variables, prob have to fill these out
   const handleRegister = async (values: z.infer<typeof registrationSchema>) => {
     try {
@@ -145,7 +145,7 @@ export default function Login() {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
     }
   };
-  
+
   // Handle metadata submission
   const handleMetadataSubmit = async (values: z.infer<typeof metadataSchema>) => {
     try {
@@ -216,7 +216,7 @@ export default function Login() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-  
+
       {/* Form Container */}
       <Card className="w-full max-w-md">
         <CardHeader>
@@ -232,7 +232,7 @@ export default function Login() {
                   <FormControl><Input {...field} /></FormControl>
                 </FormItem>
               )} />
-              
+
               {/* Password Input */}
               <FormField control={registerForm.control} name="password" render={({ field }) => (
                 <FormItem>
@@ -240,14 +240,14 @@ export default function Login() {
                   <FormControl><Input type="password" {...field} /></FormControl>
                 </FormItem>
               )} />
-              
+
               {/* Submit Button */}
               <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Log In</Button>
             </form>
           </Form>
         </CardContent>
       </Card>
-      
+
       {/* Guest Login Button */}
       <Button
         variant="outline"
