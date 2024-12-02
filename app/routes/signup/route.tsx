@@ -34,24 +34,44 @@ import { useState } from 'react';
 ///////////////////////////////////////////////
 ///~ using zod's validation api
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  //name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const metadataSchema = z.object({
+  weightPounds: z.number().min(1, "Weight is required"),
+  heightInches: z.number().min(1, "Height is required"),
+  age: z.number().min(1, "Age is required"),
+  gender: z.enum(["M", "F", "U"]),
+  goal: z.string().min(1, "Goal is required"),
 });
 
 ///////////////////////////////////////////////
 ///~ sign up page component
 export default function SignUp() {
   const [error, setError] = useState('');
+  const [step, setStep] = useState<"register" | "metadata">("register");
   const navigate = useNavigate();
 
   {/* form init */}
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      //name: "",
       email: "",
       password: "",
+    },
+  });
+
+  const metadataForm = useForm<z.infer<typeof metadataSchema>>({
+    resolver: zodResolver(metadataSchema),
+    defaultValues: {
+      weightPounds: 0,
+      heightInches: 0,
+      age: 0,
+      gender: "U",
+      goal: "none",
     },
   });
 
@@ -84,10 +104,31 @@ export default function SignUp() {
       const userData = await response.json();
       localStorage.setItem('userId', userData.id);
       localStorage.setItem('userEmail', userData.email);
-      navigate('/dashboard');
+
+      setStep("metadata"); // move to the metadata form
+      form.reset();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
       console.error('Registration error:', err);
+    }
+  };
+
+  const handleMetadataSubmit = async (values: z.infer<typeof metadataSchema>) => {
+    try {
+      const formData = new FormData();
+      formData.append("weightPounds", String(values.weightPounds));
+      formData.append("heightInches", String(values.heightInches));
+      formData.append("age", String(values.age));
+      formData.append("gender", values.gender);
+      formData.append("goal", values.goal);
+
+      const response = await fetch("/updateMetadata", { method: "POST", body: formData });
+
+      if (!response.ok) throw new Error("Failed to save metadata");
+
+      navigate("/dashboard");
+    } catch (err) {
+      setError("Failed to save metadata. Please try again.");
     }
   };
 
@@ -126,128 +167,185 @@ export default function SignUp() {
         </Alert>
       )}
 
-      {/* signup form*/}
-      <Card className="w-full max-w-md">
+      {/* Registration Form (Step 1) */}
+        {step === "register" ? (
+        <Card className="w-full max-w-md">
 
-        {/* subheadings*/}
-        <CardHeader>
-          <CardTitle>Sign Up</CardTitle>
-          <CardDescription>
-            Enter your details to create your account
-          </CardDescription>
-        </CardHeader>
+          {/* subheadings*/}
+          <CardHeader>
+            <CardTitle>Sign Up</CardTitle>
+            <CardDescription>
+              Enter your details to create your account
+            </CardDescription>
+          </CardHeader>
 
-        {/* form props populated*/}
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* form props populated*/}
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* NAME form field
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <Input
+                            placeholder="John Doe"
+                            className="pl-10"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              */}  
+                
+                {/* EMAIL form field*/}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <Input
+                            placeholder="you@example.com"
+                            className="pl-10"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              {/* NAME form field*/}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
+                {/* PASSWORD form field*/}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <Input
+                            type="password"
+                            placeholder="••••••••"
+                            className="pl-10"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* submit button */}
+                <Button
+                  type="submit"
+                  className="w-full bg-red-900 hover:bg-red-800"
+                >
+                  Next
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      ) : (
+         /* Metadata Input Form (Step 2) */
+         <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Set Your Goals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...metadataForm}>
+              <form onSubmit={metadataForm.handleSubmit(handleMetadataSubmit)} className="space-y-6">
+                {/* Weight Input */}
+                <FormField control={metadataForm.control} name="weightPounds" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        <Input
-                          placeholder="John Doe"
-                          className="pl-10"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
+                    <FormLabel>Weight (lbs)</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
                   </FormItem>
-                )}
-              />
-
-              {/* EMAIL form field*/}
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
+                )} />
+                
+                {/* Height Input */}
+                <FormField control={metadataForm.control} name="heightInches" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        <Input
-                          placeholder="you@example.com"
-                          className="pl-10"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
+                    <FormLabel>Height (inches)</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
                   </FormItem>
-                )}
-              />
-
-              {/* PASSWORD form field*/}
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
+                )} />
+                
+                {/* Age Input */}
+                <FormField control={metadataForm.control} name="age" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          className="pl-10"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
+                    <FormLabel>Age</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
                   </FormItem>
-                )}
-              />
+                )} />
+                
+                {/* Gender Selection */}
+                <FormField control={metadataForm.control} name="gender" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                
+                {/* Fitness Goal Input */}
+                <FormField control={metadataForm.control} name="goal" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fitness Goal</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                
+                {/* Save Button */}
+                <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Save</Button>
+              </form>
+            </Form>
+          </CardContent>
+       </Card>
+      )}
 
-              {/* submit button */}
-              <Button
-                type="submit"
-                className="w-full bg-red-900 hover:bg-red-800"
-              >
-                Create Account
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+      {/* GO TO: login page if have account already*/}
+      <div className="mt-6 space-y-4">
+        <div className="text-center text-sm text-gray-600">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="text-red-900 hover:text-red-800 font-medium"
+          >
+            Log In
+          </Link>
+        </div>
 
-            </form>
-          </Form>
+        {/* GUEST FUNCTION */}
+        <Button
+          variant="outline"
+          className="w-full"
+          asChild
+        >
+          <Link to="/dashboard">
+            Continue as Guest
+            <ExternalLink className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
 
-          {/* GO TO: login page if have account already*/}
-          <div className="mt-6 space-y-4">
-            <div className="text-center text-sm text-gray-600">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="text-red-900 hover:text-red-800 font-medium"
-              >
-                Log In
-              </Link>
-            </div>
-
-            {/* GUEST FUNCTION */}
-            <Button
-              variant="outline"
-              className="w-full"
-              asChild
-            >
-              <Link to="/dashboard">
-                Continue as Guest
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+      </div>
+  </div>
+);
 }

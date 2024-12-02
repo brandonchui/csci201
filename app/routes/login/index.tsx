@@ -106,14 +106,10 @@ const metadataSchema = z.object({
   goal: z.string().min(1, "Goal is required"),
 });
 
-
-// TODO FOR KELLY - remove extra login page, metadata form should be prompted after signing up 
-
 ///////////////////////////////////////////////
 ///~ login page component
 export default function Login() {
   const [error, setError] = useState("");
-  const [step, setStep] = useState<"register" | "metadata">("register");
   const navigate = useNavigate();
   const actionData = useActionData<ActionData>();
 
@@ -123,19 +119,6 @@ export default function Login() {
     defaultValues: {
       email: "",
       password: "",
-    },
-  });
-
-  //TODO: registration still doesn't work? not exactly sure if it reaches the backend correctly to store user data?
-
-  const metadataForm = useForm<z.infer<typeof metadataSchema>>({
-    resolver: zodResolver(metadataSchema),
-    defaultValues: {
-      weightPounds: 0,
-      heightInches: 0,
-      age: 0,
-      gender: "U",
-      goal: "none",
     },
   });
 
@@ -157,7 +140,7 @@ export default function Login() {
         throw new Error(errorData.error || "Registration failed");
       }
 
-      setStep("metadata");
+      navigate('/dashbaord');
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
     }
@@ -235,93 +218,35 @@ export default function Login() {
       )}
   
       {/* Form Container */}
-      {step === 'register' ? (
-        // Registration Form
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Log In to Existing Account</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...registerForm}>
-              <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-6">
-                {/* Email Input */}
-                <FormField control={registerForm.control} name="email" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                
-                {/* Password Input */}
-                <FormField control={registerForm.control} name="password" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl><Input type="password" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                
-                {/* Submit Button */}
-                <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Next</Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      ) : (
-        // Metadata Input Form (Displayed after successful registration)
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Set Your Goals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...metadataForm}>
-              <form onSubmit={metadataForm.handleSubmit(handleMetadataSubmit)} className="space-y-6">
-                {/* Weight Input */}
-                <FormField control={metadataForm.control} name="weightPounds" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Weight (lbs)</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                
-                {/* Height Input */}
-                <FormField control={metadataForm.control} name="heightInches" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Height (inches)</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                
-                {/* Age Input */}
-                <FormField control={metadataForm.control} name="age" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Age</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                
-                {/* Gender Selection */}
-                <FormField control={metadataForm.control} name="gender" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                
-                {/* Fitness Goal Input */}
-                <FormField control={metadataForm.control} name="goal" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fitness Goal</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                
-                {/* Save Button */}
-                <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Save</Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      )}
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Log In</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...registerForm}>
+            <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-6">
+              {/* Email Input */}
+              <FormField control={registerForm.control} name="email" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              
+              {/* Password Input */}
+              <FormField control={registerForm.control} name="password" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl><Input type="password" {...field} /></FormControl>
+                </FormItem>
+              )} />
+              
+              {/* Submit Button */}
+              <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Log In</Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
       
       {/* Guest Login Button */}
       <Button
