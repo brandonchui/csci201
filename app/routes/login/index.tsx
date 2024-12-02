@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   // LogIn,
+  UserPlus,
   Mail,
   Lock,
   ArrowRight,
@@ -92,7 +93,6 @@ export const action: ActionFunction = async ({ request }) => {
 ///////////////////////////////////////////////
 ///~ using zod's validation api
 const registrationSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
@@ -107,9 +107,11 @@ const metadataSchema = z.object({
 });
 
 
+// TODO FOR KELLY - remove extra login page, metadata form should be prompted after signing up 
+
 ///////////////////////////////////////////////
 ///~ login page component
-export default function SignUp() {
+export default function Login() {
   const [error, setError] = useState("");
   const [step, setStep] = useState<"register" | "metadata">("register");
   const navigate = useNavigate();
@@ -119,7 +121,6 @@ export default function SignUp() {
   const registerForm = useForm<z.infer<typeof registrationSchema>>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
-      fullName: "",
       email: "",
       password: "",
     },
@@ -143,7 +144,6 @@ export default function SignUp() {
   const handleRegister = async (values: z.infer<typeof registrationSchema>) => {
     try {
       const formData = new FormData();
-      formData.append("fullName", values.fullName);
       formData.append("email", values.email);
       formData.append("password", values.password);
 
@@ -203,22 +203,30 @@ export default function SignUp() {
   ///~ layout
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col items-center px-6 pt-24 pb-12">
-      {/* Page Header: Logo and Title */}
+
+      {/* logo/title sec */}
       <div className="text-center mb-8">
-        {/* App Logo */}
-        <img src="/logo.png" alt="Logo" className="h-32 w-auto mb-6" />
-        
-        {/* Badge indicating current step */}
+
+        {/* logo */}
+        <img
+          src="/logo.png"
+          alt="Logo"
+          className="h-32 w-auto md:h-40 mx-auto mb-6"
+        />
+
+        {/* badge for create acc */}
         <Badge variant="outline" className="px-4 py-1 border-yellow-500 text-red-900 mb-4">
-          {step === 'register' ? 'Create Account' : 'Set Goals'}
+          <UserPlus className="h-4 w-4 mr-1 text-yellow-500" />
+          <span>Create Account</span>
         </Badge>
-        
-        {/* Page Title */}
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent">
-          {step === 'register' ? 'Sign Up' : 'Set Your Goals'}
+
+        {/* h1 header */}
+        <h1
+          className="text-3xl font-bold tracking-tight bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent">
+          Join Our Fitness Community
         </h1>
       </div>
-  
+
       {/* Error Toast (Displayed if error exists) */}
       {error && (
         <Alert variant="destructive" className="mb-6 max-w-md">
@@ -231,19 +239,11 @@ export default function SignUp() {
         // Registration Form
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Create Account</CardTitle>
+            <CardTitle>Log In to Existing Account</CardTitle>
           </CardHeader>
           <CardContent>
             <Form {...registerForm}>
               <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-6">
-                {/* Full Name Input */}
-                <FormField control={registerForm.control} name="fullName" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                
                 {/* Email Input */}
                 <FormField control={registerForm.control} name="email" render={({ field }) => (
                   <FormItem>
