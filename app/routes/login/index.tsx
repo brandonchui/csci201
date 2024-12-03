@@ -221,6 +221,9 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Log In</CardTitle>
+          <CardDescription>
+            Enter your details to log into your account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...registerForm}>
@@ -228,8 +231,17 @@ export default function Login() {
               {/* Email Input */}
               <FormField control={registerForm.control} name="email" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <Input
+                            placeholder="you@example.com"
+                            className="pl-10"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
                 </FormItem>
               )} />
 
@@ -237,7 +249,17 @@ export default function Login() {
               <FormField control={registerForm.control} name="password" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
-                  <FormControl><Input type="password" {...field} /></FormControl>
+                  <FormControl>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <Input
+                            type="password"
+                            placeholder="••••••••"
+                            className="pl-10"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
                 </FormItem>
               )} />
 
