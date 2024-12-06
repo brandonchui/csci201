@@ -116,16 +116,22 @@ export default function SignUp() {
 
   const handleMetadataSubmit = async (values: z.infer<typeof metadataSchema>) => {
     try {
-      const formData = new FormData();
-      formData.append("weightPounds", String(values.weightPounds));
-      formData.append("heightInches", String(values.heightInches));
-      formData.append("age", String(values.age));
-      formData.append("gender", values.gender);
-      formData.append("goal", values.goal);
-
-      const response = await fetch("/updateMetadata", { method: "POST", body: formData });
-
+      const response = await fetch('/updateMetaData', {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          weightPounds: values.weightPounds,
+          heightInches: values.heightInches,
+          age: values.age,
+          gender: values.gender,
+          goal: values.goal
+        }),
+      });
+  
       if (!response.ok) throw new Error("Failed to save metadata");
+  
 
       navigate("/dashboard");
     } catch (err) {
