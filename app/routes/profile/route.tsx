@@ -1,7 +1,8 @@
-///////////////////////////////////////////////
-///~ (bc) profile page
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLoaderData } from "@remix-run/react";
+import type { LoaderFunction } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { requireUserId } from "~/utils/session.server";
 import DashboardLayout from "~/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,35 +24,116 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 
-///////////////////////////////////////////////
-///~ (bc) sample data, will erase later
-const userData = {
-  name: "Lorem Ipsum",
-  email: "lorem.ipsum@example.com",
-  joinDate: "Dolorember 2024",
-  stats: {
-    height: "1'11\"",
-    weight: "XXX lbs",
-    age: 111,
-    gender: "N/A",
-    goal: "Placeholder Goal",
-    bmi: 111.1,
-    workoutsCompleted: 11,
-    streakDays: 11,
-    averageWorkoutTime: "11 mins"
+// user types
+interface UserData {
+  id: number;
+  email: string;
+  hashedPassword: string;
+  weightPounds: number;
+  heightInches: number;
+  age: number;
+  gender: string;
+  goal: string;
+}
+
+interface Exercise {
+  id: number;
+  name: string;
+  sets: number;
+  repetitions: number;
+  durationMins: number;
+  isCompleted: boolean;
+  userId: number;
+  date: string;
+  isAiSuggestion: boolean;
+}
+
+interface LoaderData {
+  userId: number | null;
+  userData: UserData | null;
+  exercises: Exercise[];
+}
+
+// guest data
+const GUEST_DATA = {
+  id: 0,
+  email: "guest@example.com",
+  hashedPassword: "",
+  weightPounds: 0,
+  heightInches: 0,
+  age: 0,
+  gender: "U",
+  goal: "Not specified"
+};
+
+// loader
+export const loader: LoaderFunction = async ({ request }) => {
+  try {
+    const userId = await requireUserId(request).catch(() => null);
+
+    if (!userId) {
+      return json<LoaderData>({
+        userId: null,
+        userData: null,
+        exercises: []
+      });
+    }
+
+    const userResponse = await fetch(`https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/users/${userId}`);
+    if (!userResponse.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+    const userData = await userResponse.json();
+
+    // fetch exercises for statistics
+    const today = new Date().toISOString().split('T')[0];
+    const exercisesResponse = await fetch(
+      `https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/exercises/user/${userId}/date/${today}`
+    );
+    const exercises = exercisesResponse.ok ? await exercisesResponse.json() : [];
+
+    return json<LoaderData>({ userId, userData, exercises });
+  } catch (error) {
+    console.error('Error in profile loader:', error);
+    return json<LoaderData>({
+      userId: null,
+      userData: null,
+      exercises: []
+    });
   }
 };
 
-///////////////////////////////////////////////
-///~ (bc) layout
+// component
 export default function Profile() {
+  const { userId, userData, exercises } = useLoaderData<LoaderData>();
   const [selectedTab, setSelectedTab] = useState("Profile");
+
+  // use guest data if no user data is available
+  const displayData = userData || GUEST_DATA;
+
+  // calculate stats
+  const workoutsCompleted = exercises.filter(ex => ex.isCompleted).length;
+  const averageWorkoutTime = exercises.length > 0
+    ? Math.round(exercises.reduce((acc, ex) => acc + ex.durationMins, 0) / exercises.length)
+    : 0;
+
+  // calculate BMI? TODO remove
+  const bmi = displayData.heightInches > 0
+    ? ((displayData.weightPounds / (displayData.heightInches * displayData.heightInches)) * 703).toFixed(1)
+    : "N/A";
+
+  // format height for display
+  const formatHeight = (inches: number) => {
+    if (inches === 0) return "Not specified";
+    const feet = Math.floor(inches / 12);
+    const remainingInches = inches % 12;
+    return `${feet}'${remainingInches}"`;
+  };
 
   return (
     <DashboardLayout selectedTab={selectedTab} setSelectedTab={setSelectedTab}>
       <div className="max-w-4xl mx-auto space-y-8">
-
-        {/* profile Header */}
+        {/* profile header */}
         <Card>
           <CardHeader>
             <div className="flex items-center space-x-4">
@@ -59,41 +141,44 @@ export default function Profile() {
                 <User className="w-12 h-12 text-white" />
               </div>
               <div>
-                <CardTitle className="text-2xl">{userData.name}</CardTitle>
+                <CardTitle className="text-2xl">
+                  {displayData.email.split('@')[0]}
+                </CardTitle>
                 <CardDescription className="flex items-center mt-2">
                   <Mail className="w-4 h-4 mr-2" />
-                  {userData.email}
+                  {displayData.email}
                 </CardDescription>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className="text-red-900 border-red-900">
-                    Active Member
+                  <Badge variant="outline" className={userId ? "text-green-600 border-green-600" : "text-gray-600 border-gray-600"}>
+                    {userId ? "Member" : "Guest"}
                   </Badge>
-                  <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                    {userData.stats.streakDays} Day Streak
-                  </Badge>
+                  {workoutsCompleted > 0 && (
+                    <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                      {workoutsCompleted} Workouts Completed
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
           </CardHeader>
         </Card>
 
-        {/* stats grid */}
+        {/* stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
           {/* personal info card */}
           <Card>
-
             <CardHeader>
               <CardTitle className="text-lg font-medium">Personal Information</CardTitle>
             </CardHeader>
-
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4 text-gray-500" />
                   <span className="text-gray-600">Age</span>
                 </div>
-                <span className="font-medium">{userData.stats.age} years</span>
+                <span className="font-medium">
+                  {displayData.age > 0 ? `${displayData.age} years` : "Not specified"}
+                </span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -101,7 +186,7 @@ export default function Profile() {
                   <Ruler className="w-4 h-4 text-gray-500" />
                   <span className="text-gray-600">Height</span>
                 </div>
-                <span className="font-medium">{userData.stats.height}</span>
+                <span className="font-medium">{formatHeight(displayData.heightInches)}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -109,7 +194,9 @@ export default function Profile() {
                   <Weight className="w-4 h-4 text-gray-500" />
                   <span className="text-gray-600">Weight</span>
                 </div>
-                <span className="font-medium">{userData.stats.weight}</span>
+                <span className="font-medium">
+                  {displayData.weightPounds > 0 ? `${displayData.weightPounds} lbs` : "Not specified"}
+                </span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -117,28 +204,23 @@ export default function Profile() {
                   <Target className="w-4 h-4 text-gray-500" />
                   <span className="text-gray-600">Goal</span>
                 </div>
-                <span className="font-medium">{userData.stats.goal}</span>
+                <span className="font-medium">{displayData.goal}</span>
               </div>
-
             </CardContent>
-
           </Card>
 
-          {/* fitness stat card */}
+          {/* fitness stats card */}
           <Card>
-
             <CardHeader>
               <CardTitle className="text-lg font-medium">Fitness Statistics</CardTitle>
             </CardHeader>
-
             <CardContent className="space-y-4">
-
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Trophy className="w-4 h-4 text-gray-500" />
                   <span className="text-gray-600">Workouts Completed</span>
                 </div>
-                <span className="font-medium">{userData.stats.workoutsCompleted}</span>
+                <span className="font-medium">{workoutsCompleted}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -146,10 +228,11 @@ export default function Profile() {
                   <Activity className="w-4 h-4 text-gray-500" />
                   <span className="text-gray-600">Average Workout Time</span>
                 </div>
-                <span className="font-medium">{userData.stats.averageWorkoutTime}</span>
+                <span className="font-medium">
+                  {averageWorkoutTime > 0 ? `${averageWorkoutTime} mins` : "N/A"}
+                </span>
               </div>
 
-              {/* fun hover might remove tho */}
               <div className="flex items-center justify-between">
                 <HoverCard>
                   <HoverCardTrigger className="flex items-center space-x-2 cursor-help">
@@ -160,41 +243,34 @@ export default function Profile() {
                     <div className="space-y-2">
                       <p className="text-sm font-medium">Body Mass Index</p>
                       <p className="text-sm text-gray-500">
-                        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        BMI is a measure of body fat based on height and weight.
                       </p>
                     </div>
                   </HoverCardContent>
                 </HoverCard>
-                <span className="font-medium">{userData.stats.bmi}</span>
+                <span className="font-medium">{bmi}</span>
               </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Flame className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-600">Current Streak</span>
-                </div>
-                <span className="font-medium">{userData.stats.streakDays} days</span>
-              </div>
-
             </CardContent>
           </Card>
         </div>
 
-        {/* membership card - probably wont implement */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-medium">Membership</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Member since</p>
-                <p className="font-medium">{userData.joinDate}</p>
+        {/* membership card */}
+        {userId && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-medium">Membership</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Status</p>
+                  <p className="font-medium">Active Member</p>
+                </div>
+                <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>
               </div>
-              <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );
