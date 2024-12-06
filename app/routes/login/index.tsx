@@ -92,9 +92,9 @@ export const action: ActionFunction = async ({ request }) => {
 
 ///////////////////////////////////////////////
 ///~ using zod's validation api
-const registrationSchema = z.object({
+const formSchema = z.object({
   email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
+  password: z.string().min(1, "Password is required"),
 });
 
 // Added schema for metadata input
@@ -114,8 +114,8 @@ export default function Login() {
   const actionData = useActionData<ActionData>();
 
   {/* form init */ }
-  const registerForm = useForm<z.infer<typeof registrationSchema>>({
-    resolver: zodResolver(registrationSchema),
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
       password: "",
@@ -124,13 +124,13 @@ export default function Login() {
 
   {/* submit function - backend register */ }
   // TODO using default variables, prob have to fill these out
-  const handleRegister = async (values: z.infer<typeof registrationSchema>) => {
+  const handleLogin = async (values: z.infer<typeof formSchema>) => {
     try {
       const formData = new FormData();
       formData.append("email", values.email);
       formData.append("password", values.password);
 
-      const response = await fetch("/register", {
+      const response = await fetch("/login", {
         method: "POST",
         body: formData,
       });
@@ -140,7 +140,7 @@ export default function Login() {
         throw new Error(errorData.error || "Registration failed");
       }
 
-      navigate('/dashbaord');
+      navigate("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
     }
@@ -226,10 +226,10 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...registerForm}>
-            <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-6">
               {/* Email Input */}
-              <FormField control={registerForm.control} name="email" render={({ field }) => (
+              <FormField control={form.control} name="email" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
@@ -246,7 +246,7 @@ export default function Login() {
               )} />
 
               {/* Password Input */}
-              <FormField control={registerForm.control} name="password" render={({ field }) => (
+              <FormField control={form.control} name="password" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
