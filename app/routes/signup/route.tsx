@@ -36,7 +36,7 @@ import { useState } from 'react';
 const formSchema = z.object({
   //name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
 const metadataSchema = z.object({
@@ -281,7 +281,12 @@ export default function SignUp() {
                   <FormItem>
                     <FormLabel>Weight (lbs)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder={String(metadataForm.getValues("weightPounds"))} />
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      placeholder="Enter weight"
+                    />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -292,7 +297,12 @@ export default function SignUp() {
                   <FormItem>
                     <FormLabel>Height (inches)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder={String(metadataForm.getValues("heightInches"))} />
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      placeholder="Enter height"
+                    />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -303,7 +313,12 @@ export default function SignUp() {
                   <FormItem>
                     <FormLabel>Age</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder={String(metadataForm.getValues("age"))} />
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
+                      placeholder="Enter age"
+                    />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
