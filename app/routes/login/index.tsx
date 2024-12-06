@@ -1,7 +1,7 @@
-import { Link, useNavigate } from '@remix-run/react';
+import { Link } from '@remix-run/react';
 import { createUserSession } from "~/utils/session.server";
 import { ActionFunction, json } from '@remix-run/node';
-import { useActionData } from "@remix-run/react";
+import { useActionData, Form as RemixForm } from "@remix-run/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -24,7 +24,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  // LogIn,
   UserPlus,
   Mail,
   Lock,
@@ -97,23 +96,13 @@ const formSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// Added schema for metadata input
-const metadataSchema = z.object({
-  weightPounds: z.number().min(1, "Weight is required"),
-  heightInches: z.number().min(1, "Height is required"),
-  age: z.number().min(1, "Age is required"),
-  gender: z.enum(["M", "F", "U"]),
-  goal: z.string().min(1, "Goal is required"),
-});
-
 ///////////////////////////////////////////////
 ///~ login page component
 export default function Login() {
   const [error, setError] = useState("");
-  const navigate = useNavigate();
   const actionData = useActionData<ActionData>();
 
-  {/* form init */ }
+  {/* form init */}
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -122,102 +111,36 @@ export default function Login() {
     },
   });
 
-  {/* submit function - backend register */ }
-  // TODO using default variables, prob have to fill these out
-  const handleLogin = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const formData = new FormData();
-      formData.append("email", values.email);
-      formData.append("password", values.password);
+  // values for submission TODO
+  const email = form.watch("email");
+  const password = form.watch("password");
 
-      const response = await fetch("/login", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Registration failed");
-      }
-
-      navigate("/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
-    }
-  };
-
-  // Handle metadata submission
-  const handleMetadataSubmit = async (values: z.infer<typeof metadataSchema>) => {
-    try {
-      const formData = new FormData();
-      formData.append("weightPounds", String(values.weightPounds));
-      formData.append("heightInches", String(values.heightInches));
-      formData.append("age", String(values.age));
-      formData.append("gender", values.gender);
-      formData.append("goal", values.goal);
-
-      const response = await fetch("/updateMetadata", { method: "POST", body: formData });
-
-      if (!response.ok) throw new Error("Failed to save metadata");
-
-      navigate("/dashboard"); // Navigate to the dashboard
-    } catch (err) {
-      setError("Failed to save metadata. Please try again.");
-    }
-  };
-
-  // guest login function
-  const handleGuestLogin = async () => {
-    try {
-      const formData = new FormData();
-      formData.append("email", "guest@example.com");
-      formData.append("password", "guest123");
-
-      const response = await fetch("/login", { method: "POST", body: formData });
-      if (!response.ok) throw new Error('Guest login failed');
-
-      navigate("/dashboard"); // Directly navigate to the dashboard
-    } catch (err) {
-      setError('Guest login failed');
-    }
-  };
-
-  ///////////////////////////////////////////////
-  ///~ layout
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col items-center px-6 pt-24 pb-12">
-
       {/* logo/title sec */}
       <div className="text-center mb-8">
-
-        {/* logo */}
         <img
           src="/logo.png"
           alt="Logo"
           className="h-32 w-auto md:h-40 mx-auto mb-6"
         />
-
-        {/* badge for create acc */}
         <Badge variant="outline" className="px-4 py-1 border-yellow-500 text-red-900 mb-4">
           <UserPlus className="h-4 w-4 mr-1 text-yellow-500" />
-          <span>Create Account</span>
+          <span>Sign In</span>
         </Badge>
-
-        {/* h1 header */}
-        <h1
-          className="text-3xl font-bold tracking-tight bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent">
-          Join Our Fitness Community
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-red-900 via-red-800 to-yellow-600 bg-clip-text text-transparent">
+          Welcome Back!
         </h1>
       </div>
 
-      {/* Error Toast (Displayed if error exists) */}
-      {error && (
+      {/* error */}
+      {(error || actionData?.error) && (
         <Alert variant="destructive" className="mb-6 max-w-md">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error || actionData?.error}</AlertDescription>
         </Alert>
       )}
 
-      {/* Form Container */}
+      {/* form container */}
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Log In</CardTitle>
@@ -227,58 +150,74 @@ export default function Login() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-6">
-              {/* Email Input */}
-              <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email Address</FormLabel>
-                  <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                          <Input
-                            placeholder="you@example.com"
-                            className="pl-10"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                </FormItem>
-              )} />
+            <RemixForm method="post" className="space-y-6">
+              {/* email Input */}
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                        <Input
+                          placeholder="you@example.com"
+                          className="pl-10"
+                          {...field}
+                          name="email"
+                        />
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
-              {/* Password Input */}
-              <FormField control={form.control} name="password" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            className="pl-10"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                </FormItem>
-              )} />
+              {/* password Input */}
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          className="pl-10"
+                          {...field}
+                          name="password"
+                        />
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
               {/* Submit Button */}
-              <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">Log In</Button>
-            </form>
+              <Button type="submit" className="w-full bg-red-900 hover:bg-red-800">
+                Log In
+              </Button>
+            </RemixForm>
           </Form>
         </CardContent>
       </Card>
 
       {/* Guest Login Button */}
-      <Button
-        variant="outline"
-        className="mt-6"
-        onClick={handleGuestLogin}
-      >
-        Continue as Guest
-        <ExternalLink className="ml-2 h-4 w-4" />
-      </Button>
+      <RemixForm method="post">
+        <input type="hidden" name="email" value="guest@example.com" />
+        <input type="hidden" name="password" value="guest123" />
+        <Button
+          type="submit"
+          variant="outline"
+          className="mt-6"
+        >
+          Continue as Guest
+          <ExternalLink className="ml-2 h-4 w-4" />
+        </Button>
+      </RemixForm>
     </div>
   );
 }
