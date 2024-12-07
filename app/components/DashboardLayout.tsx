@@ -39,7 +39,7 @@ const navigationItems = [
   { icon: ChartBar, label: "Statistics", path: "/statistics" },
   { icon: Dumbbell, label: "Workouts", path: "/workouts" },
   { icon: CalendarIcon, label: "Schedule", path: "/schedule" },
-  { icon: Settings, label: "Settings", path: "/settings" },
+  // { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
 ///////////////////////////////////////////////
