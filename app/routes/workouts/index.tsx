@@ -1,8 +1,19 @@
-import React, { useState } from 'react';
+// workout.tsx
+
+///////////////////////////////////////////////
+///~ Workout Planner with Dynamic User Authentication
+
+import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input, Select } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Sparkles,
@@ -10,12 +21,139 @@ import {
   ChevronRight,
   Dumbbell,
   X,
+  Check,
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import DashboardLayout from '~/components/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
+import type { LoaderFunction } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import { requireUserId } from "~/utils/session.server";
+
+/////////////////////////////////////////////
+// Configuration
+
+// Define the API base URL consistently across the application
+const API_BASE_URL = 'http://localhost:8080/projectBackend/';
+// If you are running the API on Heroku or another remote server, uncomment the line below and comment out the above line
+// const API_BASE_URL = 'https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api';
+
+/////////////////////////////////////////////
+// User Authentication and Data Types
+
+interface Exercise {
+  id: number;
+  name: string;
+  sets: number;
+  repetitions: number;
+  durationMins: number;
+  isCompleted: boolean;
+  userId: number;
+  date: string;
+  isAiSuggestion: boolean;
+}
+
+interface UserData {
+  id: number;
+  email: string;
+  hashedPassword: string;
+  weightPounds: number;
+  heightInches: number;
+  age: number;
+  gender: string;
+  goal: string;
+}
+
+interface LoaderData {
+  userId: number;
+  userData: UserData;
+  exercises: Exercise[];
+}
+
+const DEFAULT_USER_DATA: UserData = {
+  id: 0,
+  email: "guest@example.com",
+  hashedPassword: "",
+  weightPounds: 0,
+  heightInches: 0,
+  age: 0,
+  gender: "U",
+  goal: "none",
+};
+
+/////////////////////////////////////////////
+// Loader Function to Fetch User and Exercises Data
+
+export const loader: LoaderFunction = async ({ request }) => {
+  const userId = await requireUserId(request);
+  console.log('Loading data for userId:', userId);
+
+  try {
+    // Verify if user exists
+    const verifyUserResponse = await fetch(`${API_BASE_URL}/users`);
+    if (!verifyUserResponse.ok) {
+      throw new Error('Failed to fetch users list');
+    }
+    const allUsers = await verifyUserResponse.json();
+    const userExists = allUsers.some((user: UserData) => user.id === userId);
+
+    if (!userExists) {
+      console.log('User not found in database:', userId);
+      return json<LoaderData>({
+        userId,
+        userData: DEFAULT_USER_DATA,
+        exercises: []
+      });
+    }
+
+    // Fetch user data
+    const userResponse = await fetch(`${API_BASE_URL}/users/${userId}`);
+    if (!userResponse.ok) {
+      console.error('Failed to fetch user data, status:', userResponse.status);
+      throw new Error('Failed to fetch user data');
+    }
+    const userData = await userResponse.json();
+    console.log('Fetched user data:', userData);
+
+    // Fetch exercises for today
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const exercisesResponse = await fetch(
+      `${API_BASE_URL}/exercises/user/${userId}/date/${today}`
+    );
+
+    let exercises: Exercise[] = [];
+    if (exercisesResponse.ok) {
+      exercises = await exercisesResponse.json();
+      console.log('Fetched exercises:', exercises);
+    } else {
+      console.log('No exercises found or error fetching exercises');
+    }
+
+    return json<LoaderData>({
+      userId,
+      userData: userData || DEFAULT_USER_DATA,
+      exercises
+    });
+
+  } catch (error) {
+    console.error('Error in workout loader:', error);
+    // Fallback in case of error
+    return json<LoaderData>({
+      userId,
+      userData: DEFAULT_USER_DATA,
+      exercises: []
+    });
+  }
+};
+
+///////////////////////////////////////////////
+///~ WorkoutPlanner Component
 
 export default function WorkoutPlanner() {
+  // Retrieve data from loader
+  const { userId, userData, exercises: initialExercises } = useLoaderData<LoaderData>();
+
   const [selectedTab, setSelectedTab] = useState('Workout Planner');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showAddWorkout, setShowAddWorkout] = useState(false);
@@ -23,54 +161,197 @@ export default function WorkoutPlanner() {
     name: '',
     sets: '',
     repetitions: '',
-    muscles: '',
-    intensity: 'Medium',
+    durationMins: '',
   });
 
-  // Use state to manage workouts
-  const [workouts, setWorkouts] = useState([
-    { name: 'Lunges', sets: '3 sets of 12 reps', intensity: 'Medium', muscles: 'Legs, Glutes' },
-    { name: 'Push-Ups', sets: '4 sets of 15 reps', intensity: 'High', muscles: 'Chest, Triceps, Shoulders' },
-    { name: 'Squats', sets: '3 sets of 10 reps', intensity: 'High', muscles: 'Legs, Glutes, Core' },
-    { name: 'Plank', sets: '3 sets of 1 minute', intensity: 'Medium', muscles: 'Core, Shoulders' },
-    { name: 'Deadlifts', sets: '4 sets of 8 reps', intensity: 'High', muscles: 'Lower Back, Glutes, Hamstrings' },
+  // Initialize workouts with data from loader
+  const [workouts, setWorkouts] = useState<Exercise[]>(initialExercises);
+  const [isLoading, setIsLoading] = useState(false);
 
-  ]);
+  ///////////////////////////////////////////////
+  // Date Navigation Handlers
 
   const handlePreviousDate = () => setSelectedDate((prev) => addDays(prev, -1));
   const handleNextDate = () => setSelectedDate((prev) => addDays(prev, 1));
   const handleToday = () => setSelectedDate(new Date());
-  const handleRemoveWorkout = (index) => {
-    setWorkouts((prevWorkouts) => prevWorkouts.filter((_, i) => i !== index));
+
+  ///////////////////////////////////////////////
+  // Fetch Workouts for Selected Date
+
+  const fetchWorkoutsForDate = async (date: Date) => {
+    setIsLoading(true);
+    try {
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      const response = await fetch(`${API_BASE_URL}/exercises/user/${userId}/date/${formattedDate}`);
+
+      if (!response.ok) {
+        console.error('Failed to fetch workouts for date:', formattedDate, 'Status:', response.status);
+        setWorkouts([]);
+        return;
+      }
+
+      const workoutsData: Exercise[] = await response.json();
+      setWorkouts(workoutsData);
+    } catch (error) {
+      console.error('Error fetching workouts:', error);
+      setWorkouts([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAddWorkout = () => {
-    if (!newWorkout.name || !newWorkout.sets || !newWorkout.repetitions || !newWorkout.muscles || !newWorkout.intensity) {
+  // Handle date change
+  const handleDateChange = async (newDate: Date | undefined) => {
+    if (newDate) {
+      setSelectedDate(newDate);
+      await fetchWorkoutsForDate(newDate);
+    }
+  };
+
+  ///////////////////////////////////////////////
+  // Add Workout Handler
+
+  const handleAddWorkout = async () => {
+    if (!newWorkout.name || !newWorkout.sets || !newWorkout.repetitions || !newWorkout.durationMins) {
       alert("Please fill out all fields before adding a workout!");
       return;
     }
 
-    // Add the new workout to the list
-    setWorkouts((prevWorkouts) => [
-      ...prevWorkouts,
-      {
-        name: newWorkout.name,
-        sets: `${newWorkout.sets} sets of ${newWorkout.repetitions} reps`,
-        intensity: newWorkout.intensity,
-        muscles: newWorkout.muscles,
-      },
-    ]);
+    try {
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const response = await fetch(`${API_BASE_URL}/exercises`, { // Removed trailing slash
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${token}`, // Uncomment and set token if authentication is required
+        },
+        body: JSON.stringify({
+          userId: Number(userId),
+          date: formattedDate,
+          name: newWorkout.name,
+          sets: Number(newWorkout.sets),
+          repetitions: Number(newWorkout.repetitions),
+          durationMins: Number(newWorkout.durationMins),
+          isAiSuggestion: false,
+          isCompleted: false,
+        }),
+      });
 
-    // Reset the form and close the popup
-    setNewWorkout({
-      name: '',
-      sets: '',
-      repetitions: '',
-      muscles: '',
-      intensity: 'Medium',
-    });
-    setShowAddWorkout(false);
+      if (response.ok) {
+        const createdWorkout: Exercise = await response.json();
+        setWorkouts((prevWorkouts) => [...prevWorkouts, createdWorkout]);
+
+        // Reset the form and close the popup
+        setNewWorkout({
+          name: '',
+          sets: '',
+          repetitions: '',
+          durationMins: '',
+        });
+        setShowAddWorkout(false);
+      } else {
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (err) {
+          console.error('Failed to parse error response:', err);
+        }
+        console.error("Failed to add the workout. Status:", response.status, "Error:", errorMessage);
+        alert(`Failed to add the workout: ${errorMessage}`);
+      }
+    } catch (error) {
+      //console.error("Error adding workout:", error);
+      //alert("An unexpected error occurred while adding the workout.");
+      //setShowAddWorkout(false);
+      window.location.reload();
+
+    }
   };
+
+  ///////////////////////////////////////////////
+  // Remove Workout Handler
+
+  const handleRemoveWorkout = async (workoutId: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/exercises/${workoutId}`, { // Use API_BASE_URL
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${token}`, // Uncomment if authentication is required
+        },
+      });
+
+      if (response.ok) {
+        setWorkouts((prevWorkouts) => prevWorkouts.filter((workout) => workout.id !== workoutId));
+      } else {
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (err) {
+          console.error('Failed to parse error response:', err);
+        }
+        console.error("Failed to delete the workout. Status:", response.status, "Error:", errorMessage);
+        alert(`Failed to delete the workout: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error("Error deleting workout:", error);
+      alert("An unexpected error occurred while deleting the workout.");
+    }
+  };
+
+  ///////////////////////////////////////////////
+  // Complete Workout Handler
+
+  const handleCompleteWorkout = async (workout: Exercise) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/exercises/${workout.id}`, { // Use API_BASE_URL
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${token}`, // Uncomment if authentication is required
+        },
+        body: JSON.stringify({
+          ...workout,
+          isCompleted: true,
+        }),
+      });
+
+      if (response.ok) {
+        // Update the local state
+        setWorkouts((prevWorkouts) =>
+          prevWorkouts.map((w) =>
+            w.id === workout.id ? { ...w, isCompleted: true } : w
+          )
+        );
+      } else {
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (err) {
+          console.error('Failed to parse error response:', err);
+        }
+        console.error("Failed to update the workout. Status:", response.status, "Error:", errorMessage);
+        alert(`Failed to update the workout: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error("Error updating workout:", error);
+      alert("An unexpected error occurred while updating the workout.");
+    }
+  };
+
+  ///////////////////////////////////////////////
+  // Fetch Workouts When Selected Date Changes
+
+  useEffect(() => {
+    fetchWorkoutsForDate(selectedDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
+  ///////////////////////////////////////////////
+  // 7-Day Timeline Data (Optional Enhancement)
 
   const timelineStartDate = new Date();
   const timelineData = [
@@ -82,6 +363,66 @@ export default function WorkoutPlanner() {
     { date: addDays(timelineStartDate, 2), type: 'Legs' },
     { date: addDays(timelineStartDate, 3), type: 'Rest' },
   ];
+
+  ///////////////////////////////////////////////
+  // New: Generate Plan Handler
+
+  const handleGeneratePlan = async () => {
+    // Confirm with the user
+    if (!window.confirm("Are you sure you want to generate a new workout plan? This will delete existing workouts for this day.")) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Step 1: Delete existing workouts for the selected date
+      const deletePromises = workouts.map(workout =>
+        fetch(`${API_BASE_URL}/exercises/${workout.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            // 'Authorization': `Bearer ${token}`, // Uncomment if authentication is required
+          },
+        })
+      );
+
+      const deleteResponses = await Promise.all(deletePromises);
+      const failedDeletes = deleteResponses.filter(response => !response.ok);
+
+      if (failedDeletes.length > 0) {
+        throw new Error("Failed to delete some workouts.");
+      }
+
+      // Step 2: Call the OpenAPI Java server to generate new workouts
+      const openApiResponse = await fetch('http://localhost:7273/listen', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({userId }), // Send userId within an object
+      });
+
+      if (!openApiResponse.ok) {
+        throw new Error(`Failed to generate plan. Status: ${openApiResponse.status}`);
+      }
+
+      // Step 3: Fetch the updated workouts for the selected date
+      await fetchWorkoutsForDate(selectedDate);
+
+      // Step 4: Notify the user
+      alert("Workout plan generated successfully!");
+
+    } catch (error) {
+      console.error("Error generating workout plan:", error);
+      alert("An error occurred while generating the workout plan.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  ///////////////////////////////////////////////
+  // Render Component
 
   return (
     <DashboardLayout selectedTab={selectedTab} setSelectedTab={setSelectedTab}>
@@ -104,7 +445,7 @@ export default function WorkoutPlanner() {
               </div>
             </CardContent>
           </Card>
-  
+
           {/* Workouts Section */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -116,124 +457,79 @@ export default function WorkoutPlanner() {
                 {/* Add Workout Button */}
                 <Button onClick={() => setShowAddWorkout(true)}>Add Workout</Button>
                 {/* Generate Plan Button */}
-                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
+                <Button
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                  onClick={handleGeneratePlan}
+                  disabled={isLoading}
+                >
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Plan
+                  {isLoading ? "Generating..." : "Generate Plan"}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {workouts.map((workout, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-white border rounded-lg shadow-sm hover:border-blue-500 transition-colors relative"
-                  >
-                    {/* Workout Info */}
-                    <div className="flex items-center">
-                      <Dumbbell className="h-5 w-5 mr-4 text-blue-500" />
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {workout.name}
-                        </h3>
-                        <p className="text-sm text-gray-600">{workout.sets}</p>
-                        <p className="text-sm text-gray-500">
-                          <strong>Targets:</strong> {workout.muscles}
-                        </p>
+              {isLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="text-gray-500">Loading workouts...</div>
+                </div>
+              ) : workouts.length > 0 ? (
+                <div className="space-y-4">
+                  {workouts.map((workout) => (
+                    <div
+                      key={workout.id}
+                      className={`flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-white border rounded-lg shadow-sm transition-colors relative ${
+                        workout.isCompleted ? 'bg-green-50 border-green-500' : 'hover:border-blue-500'
+                      }`}
+                    >
+                      {/* Workout Info */}
+                      <div className="flex items-center">
+                        <Dumbbell className="h-5 w-5 mr-4 text-blue-500" />
+                        <div>
+                          <h3 className={`text-lg font-semibold ${workout.isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                            {workout.name}
+                          </h3>
+                          <p className={`text-sm ${workout.isCompleted ? 'line-through text-gray-400' : 'text-gray-600'}`}>
+                            {workout.sets} sets of {workout.repetitions} reps
+                          </p>
+                          <p className={`text-sm ${workout.isCompleted ? 'line-through text-gray-400' : 'text-gray-500'}`}>
+                            <strong>Duration:</strong> {workout.durationMins} mins
+                          </p>
+                          {workout.isCompleted && (
+                            <Badge className="mt-1 bg-green-100 text-green-800">Completed</Badge>
+                          )}
+                        </div>
+                      </div>
+                      {/* Action Buttons */}
+                      <div className="flex items-center space-x-2 mt-2 lg:mt-0">
+                        {!workout.isCompleted && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="relative group"
+                            onClick={() => handleCompleteWorkout(workout)}
+                          >
+                            <Check className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-green-500" />
+                            <span className="sr-only">Mark as Completed</span>
+                          </Button>
+                        )}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleRemoveWorkout(workout.id)}
+                        >
+                          <X className="h-5 w-5" />
+                          <span className="sr-only">Remove Workout</span>
+                        </Button>
                       </div>
                     </div>
-                    {/* Intensity Badge and Remove Button */}
-                    <div className="flex items-center space-x-2">
-                      <Badge
-                        variant="outline"
-                        className={
-                          workout.intensity === 'High'
-                            ? 'border-red-500 text-red-500'
-                            : workout.intensity === 'Medium'
-                            ? 'border-yellow-500 text-yellow-600'
-                            : 'border-green-500 text-green-500'
-                        }
-                      >
-                        {workout.intensity}
-                      </Badge>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleRemoveWorkout(index)}
-                      >
-                        <X className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No workouts scheduled for this day.</p>
+              )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Add Workout Popup */}
-        {showAddWorkout && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
-              <h3 className="text-xl font-semibold mb-4">Add New Workout</h3>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="name">Workout Name</Label>
-                  <Input
-                    id="name"
-                    value={newWorkout.name}
-                    onChange={(e) => setNewWorkout({ ...newWorkout, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="sets">Sets</Label>
-                  <Input
-                    id="sets"
-                    type="number"
-                    value={newWorkout.sets}
-                    onChange={(e) => setNewWorkout({ ...newWorkout, sets: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="repetitions">Repetitions</Label>
-                  <Input
-                    id="repetitions"
-                    type="number"
-                    value={newWorkout.repetitions}
-                    onChange={(e) => setNewWorkout({ ...newWorkout, repetitions: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="muscles">Target Muscles</Label>
-                  <Input
-                    id="muscles"
-                    value={newWorkout.muscles}
-                    onChange={(e) => setNewWorkout({ ...newWorkout, muscles: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="intensity">Intensity</Label>
-                  <select
-                    id="intensity"
-                    value={newWorkout.intensity}
-                    onChange={(e) => setNewWorkout({ ...newWorkout, intensity: e.target.value })}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end mt-4 space-x-2">
-                <Button variant="outline" onClick={() => setShowAddWorkout(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddWorkout}>Add Workout</Button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Right Section: Calendar */}
         <div className="space-y-6">
@@ -246,7 +542,7 @@ export default function WorkoutPlanner() {
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={(newDate) => newDate && setSelectedDate(newDate)}
+                onSelect={handleDateChange}
                 className="rounded-md border h-full"
               />
               <Button className="w-full mt-4" variant="outline" onClick={handleToday}>
@@ -256,6 +552,61 @@ export default function WorkoutPlanner() {
           </Card>
         </div>
       </div>
+
+      {/* Add Workout Popup */}
+      {showAddWorkout && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
+            <h3 className="text-xl font-semibold mb-4">Add New Workout</h3>
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="name">Workout Name</Label>
+                <Input
+                  id="name"
+                  value={newWorkout.name}
+                  onChange={(e) => setNewWorkout({ ...newWorkout, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="sets">Sets</Label>
+                <Input
+                  id="sets"
+                  type="number"
+                  min="1"
+                  value={newWorkout.sets}
+                  onChange={(e) => setNewWorkout({ ...newWorkout, sets: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="repetitions">Repetitions</Label>
+                <Input
+                  id="repetitions"
+                  type="number"
+                  min="1"
+                  value={newWorkout.repetitions}
+                  onChange={(e) => setNewWorkout({ ...newWorkout, repetitions: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="durationMins">Duration (mins)</Label>
+                <Input
+                  id="durationMins"
+                  type="number"
+                  min="1"
+                  value={newWorkout.durationMins}
+                  onChange={(e) => setNewWorkout({ ...newWorkout, durationMins: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end mt-4 space-x-2">
+              <Button variant="outline" onClick={() => setShowAddWorkout(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddWorkout}>Add Workout</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Section: 7-Day Timeline with Clickable Dots */}
       <Card className="mt-6">
@@ -272,12 +623,12 @@ export default function WorkoutPlanner() {
               <div
                 key={index}
                 className="relative flex flex-col items-center cursor-pointer"
-                onClick={() => setSelectedDate(item.date)}
+                onClick={() => setSelectedDate(new Date(item.date))}
               >
                 {/* Dot */}
                 <div
                   className={`h-4 w-4 rounded-full ${
-                    format(item.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                    format(new Date(item.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
                       ? 'bg-blue-500'
                       : 'bg-gray-300'
                   }`}
@@ -286,7 +637,7 @@ export default function WorkoutPlanner() {
 
                 {/* Day and Type Information */}
                 <div className="mt-4 text-sm text-center">
-                  <div>{format(item.date, 'EEE')}</div>
+                  <div>{format(new Date(item.date), 'EEE')}</div>
                   <div className="text-xs bg-gray-100 rounded-full px-3 py-1">
                     {item.type}
                   </div>
