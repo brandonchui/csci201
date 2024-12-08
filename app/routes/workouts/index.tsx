@@ -35,9 +35,9 @@ import { requireUserId } from "~/utils/session.server";
 // Configuration
 
 // Define the API base URL consistently across the application
-const API_BASE_URL = 'http://localhost:8080/projectBackend/';
+//const API_BASE_URL = 'http://localhost:8080/projectBackend/';
 // If you are running the API on Heroku or another remote server, uncomment the line below and comment out the above line
-// const API_BASE_URL = 'https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api';
+ const API_BASE_URL = 'https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api';
 
 /////////////////////////////////////////////
 // User Authentication and Data Types

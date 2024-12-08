@@ -4,6 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import DashboardLayout from '~/components/DashboardLayout';
+import { json } from "@remix-run/node";
+import type { LoaderFunction } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import { requireUserId } from "~/utils/session.server";
+
+// Loader Function to Dynamically Fetch User ID
+
+export const loader: LoaderFunction = async ({ request }) => {
+  // Dynamically fetch user ID from session or cookies
+  const userId = await requireUserId(request);
+
+  // Return the userId for use in the component
+  return json({ userId });
+};
+
+
+// Fetch Exercises for the Calendar
 
 const fetchExercisesForCalendar = async (userId: number, dates: string[]) => {
   const exercisesByDate: Record<string, any[]> = {};
@@ -11,7 +28,7 @@ const fetchExercisesForCalendar = async (userId: number, dates: string[]) => {
   for (const date of dates) {
     try {
       const response = await fetch(
-        `https://spring-demo-bc-ff2fb46a7e3b.herokuapp.com/api/exercises/user/${userId}/date/${date}`
+        `http://localhost:8080/projectBackend/exercises/user/${userId}/date/${date}`
       );
       if (response.ok) {
         const exercises = await response.json();
@@ -29,15 +46,17 @@ const fetchExercisesForCalendar = async (userId: number, dates: string[]) => {
   return exercisesByDate;
 };
 
+
+// Schedule Component
+
 const Schedule: React.FC = () => {
+  const { userId } = useLoaderData<{ userId: number }>(); // Get the userId dynamically from the loader
   const [date, setDate] = useState<Date>(new Date());
   const [exercisesByDate, setExercisesByDate] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [selectedDayExercises, setSelectedDayExercises] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
-  const userId = 1;
 
   const generateCalendarDates = () => {
     return eachDayOfInterval({
@@ -50,13 +69,13 @@ const Schedule: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       const dates = generateCalendarDates();
-      const data = await fetchExercisesForCalendar(userId, dates);
+      const data = await fetchExercisesForCalendar(userId, dates); // Use dynamic userId here
       setExercisesByDate(data);
       setLoading(false);
     };
 
     fetchData();
-  }, [date]);
+  }, [date, userId]);
 
   const handlePreviousMonth = () => setDate((prev) => startOfMonth(new Date(prev.setMonth(prev.getMonth() - 1))));
   const handleNextMonth = () => setDate((prev) => startOfMonth(new Date(prev.setMonth(prev.getMonth() + 1))));
